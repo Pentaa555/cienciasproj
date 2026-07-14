@@ -71,7 +71,30 @@ async function main() {
       throw new Error(`winner cost ${winnerCost} is not the minimum among [${allCosts.join(", ")}]`);
     }
 
-    console.log("E2E OK:", summaryText.replace(/\n/g, " | "), `winner cost=${winnerCost} min=${minCost}`);
+    await page.evaluate(() => {
+      document.getElementById("stationsList").children[0].click();
+      document.getElementById("criticalList").children[0].click();
+    });
+
+    await page.waitForFunction(
+      () => document.getElementById("route-result").textContent.length > 0,
+      { timeout: 15000 }
+    );
+
+    const routeResultText = await page.evaluate(() => document.getElementById("route-result").textContent);
+    if (!/min|Sin ruta posible/.test(routeResultText)) {
+      throw new Error(`route-result text unexpected: ${routeResultText}`);
+    }
+
+    // Extra screenshot capturing the state after both flows have run (dispatch result
+    // still visible from earlier + A/B route slots/coach populated), useful as a
+    // substitute for interactive manual browser verification.
+    await page.screenshot({ path: path.join(__dirname, "..", "build", "e2e_screenshot.png") });
+
+    console.log(
+      "E2E OK:", summaryText.replace(/\n/g, " | "), `winner cost=${winnerCost} min=${minCost}`,
+      "| A/B route:", routeResultText
+    );
   } finally {
     await browser.close();
   }
