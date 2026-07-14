@@ -199,5 +199,41 @@ class TestPatrolEdges(unittest.TestCase):
         self.assertEqual(edges, {(1, 2), (2, 3), (3, 4)})
 
 
+from graph_core import compare_strategies
+
+
+class TestCompareStrategies(unittest.TestCase):
+    def test_individual_vs_patrol_totals(self):
+        pois = [
+            {"id": "s1", "name": "Hospital A", "type": "hospital", "node": 1},
+            {"id": "c1", "name": "Colegio B", "type": "school", "node": 2},
+            {"id": "c2", "name": "Templo C", "type": "place_of_worship", "node": 3},
+        ]
+        cost_matrix = {
+            ("s1", "c1"): 5.0, ("c1", "s1"): 5.0,
+            ("s1", "c2"): 8.0, ("c2", "s1"): 8.0,
+            ("c1", "c2"): 3.0, ("c2", "c1"): 3.0,
+        }
+        mst_edges = [("s1", "c1", 5.0), ("c1", "c2", 3.0)]
+
+        result = compare_strategies(pois, cost_matrix, mst_edges)
+
+        self.assertAlmostEqual(result["individual"]["total"], 2 * 5.0 + 2 * 8.0)
+        self.assertAlmostEqual(result["patrol"]["total"], 2 * (5.0 + 3.0))
+        self.assertEqual(len(result["individual"]["assignments"]), 2)
+        c1_assignment = next(a for a in result["individual"]["assignments"] if a["poi"] == "Colegio B")
+        self.assertEqual(c1_assignment["station"], "Hospital A")
+        self.assertAlmostEqual(c1_assignment["cost"], 5.0)
+        self.assertAlmostEqual(c1_assignment["roundtrip"], 10.0)
+        self.assertGreater(result["savingsPct"], 0)
+
+    def test_no_critical_points_gives_zero_savings(self):
+        pois = [{"id": "s1", "name": "Hospital A", "type": "hospital", "node": 1}]
+        result = compare_strategies(pois, {}, [])
+        self.assertEqual(result["individual"]["total"], 0.0)
+        self.assertEqual(result["individual"]["assignments"], [])
+        self.assertEqual(result["savingsPct"], 0.0)
+
+
 if __name__ == "__main__":
     unittest.main()

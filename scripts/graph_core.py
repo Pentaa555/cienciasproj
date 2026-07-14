@@ -173,3 +173,37 @@ def patrol_edges(mst_edges, poi_node, adj):
         for a, b in zip(path, path[1:]):
             result.add((a, b) if a < b else (b, a))
     return result
+
+
+STATION_TYPES = {"hospital", "police"}
+CRITICAL_TYPES = {"school", "community_centre", "place_of_worship"}
+
+
+def compare_strategies(pois, cost_matrix, mst_edges):
+    stations = [p for p in pois if p["type"] in STATION_TYPES]
+    critical = [p for p in pois if p["type"] in CRITICAL_TYPES]
+
+    assignments = []
+    total_individual = 0.0
+    for c in critical:
+        best_station = min(stations, key=lambda s: cost_matrix[(s["id"], c["id"])])
+        cost = cost_matrix[(best_station["id"], c["id"])]
+        roundtrip = 2 * cost
+        total_individual += roundtrip
+        assignments.append({
+            "poi": c["name"],
+            "station": best_station["name"],
+            "cost": cost,
+            "roundtrip": roundtrip,
+        })
+
+    mst_total = sum(e[2] for e in mst_edges)
+    patrol_total = 2 * mst_total
+
+    savings_pct = 100 * (1 - patrol_total / total_individual) if total_individual > 0 else 0.0
+
+    return {
+        "individual": {"total": total_individual, "assignments": assignments},
+        "patrol": {"total": patrol_total},
+        "savingsPct": savings_pct,
+    }
