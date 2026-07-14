@@ -1,6 +1,7 @@
 import unittest
 import tempfile
 import os
+import math
 from graph_core import haversine_m, parse_osm
 
 FIXTURE_OSM = """<?xml version="1.0" encoding="UTF-8"?>
@@ -88,6 +89,34 @@ class TestBuildGraph(unittest.TestCase):
         self.assertIn(3, neighbors_of_2)
         neighbors_of_3 = {n for n, _ in adj.get(3, [])}
         self.assertNotIn(2, neighbors_of_3)
+
+
+from graph_core import dijkstra, shortest_path
+
+
+class TestDijkstra(unittest.TestCase):
+    def setUp(self):
+        self.adj = {
+            1: [(2, 1.0), (3, 4.0)],
+            2: [(1, 1.0), (3, 2.0), (4, 7.0)],
+            3: [(1, 4.0), (2, 2.0), (4, 1.0)],
+            4: [(2, 7.0), (3, 1.0)],
+        }
+
+    def test_dist(self):
+        dist, _ = dijkstra(self.adj, 1)
+        self.assertEqual(dist[4], 4.0)
+
+    def test_shortest_path_reconstruction(self):
+        path, cost = shortest_path(self.adj, 1, 4)
+        self.assertEqual(path, [1, 2, 3, 4])
+        self.assertEqual(cost, 4.0)
+
+    def test_unreachable(self):
+        adj = {1: [(2, 1.0)], 2: [(1, 1.0)], 3: []}
+        path, cost = shortest_path(adj, 1, 3)
+        self.assertIsNone(path)
+        self.assertEqual(cost, math.inf)
 
 
 if __name__ == "__main__":

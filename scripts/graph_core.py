@@ -1,5 +1,6 @@
 import math
 import xml.etree.ElementTree as ET
+import heapq
 
 EARTH_RADIUS_M = 6371000.0
 
@@ -70,3 +71,33 @@ def adjacency(edges):
         if not e["directed"]:
             adj.setdefault(e["to"], []).append((e["from"], e["w"]))
     return adj
+
+
+def dijkstra(adj, source):
+    dist = {source: 0.0}
+    prev = {}
+    visited = set()
+    heap = [(0.0, source)]
+    while heap:
+        d, u = heapq.heappop(heap)
+        if u in visited:
+            continue
+        visited.add(u)
+        for v, w in adj.get(u, []):
+            nd = d + w
+            if nd < dist.get(v, math.inf):
+                dist[v] = nd
+                prev[v] = u
+                heapq.heappush(heap, (nd, v))
+    return dist, prev
+
+
+def shortest_path(adj, source, target):
+    dist, prev = dijkstra(adj, source)
+    if target not in dist:
+        return None, math.inf
+    path = [target]
+    while path[-1] != source:
+        path.append(prev[path[-1]])
+    path.reverse()
+    return path, dist[target]
