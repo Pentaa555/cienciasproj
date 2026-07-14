@@ -23,6 +23,8 @@ class TestPreprocessOutput(unittest.TestCase):
         self.assertEqual(by_type.get("hospital"), 3)
         self.assertEqual(by_type.get("police"), 1)
         self.assertGreaterEqual(by_type.get("school", 0), 8)
+        self.assertGreaterEqual(by_type.get("community_centre", 0), 1)
+        self.assertGreaterEqual(by_type.get("place_of_worship", 0), 1)
 
     def test_patrol_route_connects_all_pois(self):
         adj = {}
@@ -41,6 +43,16 @@ class TestPreprocessOutput(unittest.TestCase):
                     stack.append(v)
         missing = poi_nodes - seen
         self.assertEqual(missing, set(), f"POIs not connected by patrol route: {missing}")
+
+    def test_strategy_comparison_present_and_sane(self):
+        sc = self.data["strategyComparison"]
+        self.assertGreater(sc["individual"]["total"], 0)
+        self.assertGreater(sc["patrol"]["total"], 0)
+        self.assertGreater(len(sc["individual"]["assignments"]), 0)
+        for a in sc["individual"]["assignments"]:
+            self.assertIn("poi", a)
+            self.assertIn("station", a)
+            self.assertAlmostEqual(a["roundtrip"], 2 * a["cost"])
 
 
 if __name__ == "__main__":
