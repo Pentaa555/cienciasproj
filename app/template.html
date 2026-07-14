@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <title>Consola de despacho — Timiza</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -10,25 +12,36 @@
     margin: 0; font-family: Arial, sans-serif; background: #0b0f0e; color: #e8f0ee;
     display: flex; height: 100vh;
   }
-  #mapCanvas { background: #101614; flex: 1; display: block; cursor: crosshair; }
+  #map { background: #101614; flex: 1; }
   #panel {
     width: 320px; padding: 16px; background: #131a18; border-left: 1px solid #1f5652;
     overflow-y: auto;
   }
-  #panel h2 { font-size: 15px; color: #4fd1c5; margin: 0 0 8px; }
-  #vehicleList div, #summary div { font-size: 12px; margin-bottom: 4px; }
+  #panel h2 { font-size: 15px; color: #4fd1c5; margin: 16px 0 8px; }
+  #panel h2:first-child { margin-top: 0; }
+  #vehicleList div, #summary div, #strategyPanel div { font-size: 12px; margin-bottom: 4px; }
   .winner { color: #4fd1c5; font-weight: bold; }
   #speedRow { margin-top: 16px; font-size: 12px; }
   #speedSlider { width: 100%; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; margin-bottom: 4px; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 </style>
 </head>
 <body>
-  <canvas id="mapCanvas" width="900" height="700"></canvas>
+  <div id="map"></div>
   <div id="panel">
     <h2>Despacho</h2>
     <div id="summary">Haz clic en una esquina para simular una emergencia.</div>
     <h2>Vehículos</h2>
     <div id="vehicleList"></div>
+    <h2>Comparación de estrategias</h2>
+    <div id="strategyPanel"></div>
+    <h2>Leyenda</h2>
+    <div class="legend-item"><span class="legend-dot" style="background:#ff5c5c;"></span>Hospital</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#5c8cff;"></span>Policía</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#5ee08a;"></span>Colegio</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#ffb454;"></span>Centro comunal</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#c48bff;"></span>Templo</div>
     <div id="speedRow">
       Velocidad de animación
       <input id="speedSlider" type="range" min="1" max="100" value="50">
