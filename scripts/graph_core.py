@@ -103,7 +103,13 @@ def shortest_path(adj, source, target):
     return path, dist[target]
 
 
-POI_AMENITIES = {"hospital": "hospital", "police": "police", "school": "school"}
+POI_AMENITIES = {
+    "hospital": "hospital",
+    "police": "police",
+    "school": "school",
+    "community_centre": "community_centre",
+    "place_of_worship": "place_of_worship",
+}
 
 
 def _way_centroid(way, nodes):

@@ -144,6 +144,18 @@ class TestExtractPois(unittest.TestCase):
         self.assertEqual(pois[0]["node"], 2)
 
 
+class TestExtractPoisAmenityTypes(unittest.TestCase):
+    def test_recognizes_community_centre_and_place_of_worship(self):
+        nodes = {1: (4.6100, -74.1500), 10: (4.6101, -74.1501)}
+        ways = [
+            {"id": 200, "tags": {"amenity": "community_centre", "name": "Salón Comunal"}, "nodes": [10]},
+            {"id": 201, "tags": {"amenity": "place_of_worship", "name": "Iglesia San Rafael"}, "nodes": [10]},
+        ]
+        pois = extract_pois(nodes, ways, graph_node_ids={1})
+        types = {p["type"] for p in pois}
+        self.assertEqual(types, {"community_centre", "place_of_worship"})
+
+
 from graph_core import prim_mst
 
 
