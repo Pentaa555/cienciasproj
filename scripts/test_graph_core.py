@@ -119,5 +119,30 @@ class TestDijkstra(unittest.TestCase):
         self.assertEqual(cost, math.inf)
 
 
+from graph_core import extract_pois
+
+
+class TestExtractPois(unittest.TestCase):
+    def test_snaps_to_nearest_graph_node(self):
+        nodes = {
+            1: (4.6100, -74.1500),
+            2: (4.6150, -74.1550),
+            10: (4.6149, -74.1549),
+            11: (4.6151, -74.1549),
+            12: (4.6151, -74.1551),
+            13: (4.6149, -74.1551),
+        }
+        ways = [{
+            "id": 999,
+            "tags": {"amenity": "school", "name": "Test School"},
+            "nodes": [10, 11, 12, 13],
+        }]
+        pois = extract_pois(nodes, ways, graph_node_ids={1, 2})
+        self.assertEqual(len(pois), 1)
+        self.assertEqual(pois[0]["type"], "school")
+        self.assertEqual(pois[0]["name"], "Test School")
+        self.assertEqual(pois[0]["node"], 2)
+
+
 if __name__ == "__main__":
     unittest.main()

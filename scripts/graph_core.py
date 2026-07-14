@@ -101,3 +101,39 @@ def shortest_path(adj, source, target):
         path.append(prev[path[-1]])
     path.reverse()
     return path, dist[target]
+
+
+POI_AMENITIES = {"hospital": "hospital", "police": "police", "school": "school"}
+
+
+def _way_centroid(way, nodes):
+    coords = [nodes[n] for n in way["nodes"] if n in nodes]
+    if not coords:
+        return None
+    lat = sum(c[0] for c in coords) / len(coords)
+    lon = sum(c[1] for c in coords) / len(coords)
+    return lat, lon
+
+
+def extract_pois(nodes, ways, graph_node_ids):
+    candidates = list(graph_node_ids)
+    pois = []
+    for way in ways:
+        amenity = way["tags"].get("amenity")
+        if amenity not in POI_AMENITIES:
+            continue
+        centroid = _way_centroid(way, nodes)
+        if centroid is None:
+            continue
+        lat, lon = centroid
+        nearest = min(
+            candidates,
+            key=lambda nid: haversine_m(lat, lon, nodes[nid][0], nodes[nid][1]),
+        )
+        pois.append({
+            "id": f"poi_{way['id']}",
+            "name": way["tags"].get("name", "?"),
+            "type": POI_AMENITIES[amenity],
+            "node": nearest,
+        })
+    return pois
