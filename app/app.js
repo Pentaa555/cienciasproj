@@ -68,6 +68,33 @@ const POI_LABEL = {
   community_centre: "Centro comunal", place_of_worship: "Templo",
 };
 
+function renderQuickList(elementId, pois, onSelect) {
+  const container = document.getElementById(elementId);
+  container.innerHTML = "";
+  for (const poi of pois) {
+    const btn = document.createElement("button");
+    btn.className = "quick-btn";
+    btn.textContent = poi.name;
+    btn.addEventListener("click", () => onSelect(poi));
+    container.appendChild(btn);
+  }
+}
+
+function updateRouteCoach(state) {
+  const coach = document.getElementById("coach");
+  const hasA = !!state.route.a;
+  const hasB = !!state.route.b;
+  if (hasA && hasB) {
+    coach.textContent = "Ruta A → B calculada";
+  } else if (hasA) {
+    coach.textContent = "Selecciona el punto B (destino)";
+  } else if (hasB) {
+    coach.textContent = "Selecciona el punto A (origen)";
+  } else {
+    coach.textContent = "Elige una estación (atajo A) o un punto crítico (atajo B) para trazar una ruta";
+  }
+}
+
 function formatStrategyComparison(sc) {
   return {
     individualMin: sc.individual.total.toFixed(1),
@@ -149,6 +176,48 @@ function renderVehicleList(state, costs, winnerId) {
     if (c.vehicleId === winnerId) div.className = "winner";
     list.appendChild(div);
   }
+}
+
+function computeAndAnimateRoute(map, state) {
+  state.route.generation++;
+  for (const layer of state.route.layers) map.removeLayer(layer);
+  state.route.layers = [];
+  const result = astar(state.adj, state.nodesById, state.route.a.node, state.route.b.node, MAX_SPEED_KMH);
+  animatePath(map, state.route, state.speed, result, "#ffffff", () => {
+    const resultEl = document.getElementById("route-result");
+    if (!result.path || result.cost === Infinity) {
+      resultEl.textContent = "Sin ruta posible entre estos dos puntos.";
+    } else {
+      resultEl.innerHTML = `Ruta A → B: <b>${result.cost.toFixed(1)} min</b>`;
+    }
+  });
+}
+
+function selectRoutePoint(map, state, poi, kind) {
+  state.route[kind] = poi;
+  const label = document.getElementById(kind === "a" ? "route-a-label" : "route-b-label");
+  label.textContent = poi.name;
+  label.classList.remove("empty");
+  updateRouteCoach(state);
+  if (state.route.a && state.route.b) {
+    computeAndAnimateRoute(map, state);
+  }
+}
+
+function clearRouteSelection(map, state) {
+  state.route.generation++;
+  for (const layer of state.route.layers) map.removeLayer(layer);
+  state.route.layers = [];
+  state.route.a = null;
+  state.route.b = null;
+  const labelA = document.getElementById("route-a-label");
+  labelA.textContent = "clic en un atajo";
+  labelA.classList.add("empty");
+  const labelB = document.getElementById("route-b-label");
+  labelB.textContent = "clic en un atajo";
+  labelB.classList.add("empty");
+  document.getElementById("route-result").textContent = "";
+  updateRouteCoach(state);
 }
 
 function animatePath(map, tracker, speed, result, color, onDone) {
@@ -257,6 +326,15 @@ function initApp() {
 
   renderStrategyPanel(data.strategyComparison);
 
+  const stations = data.pois.filter((p) => p.type === "hospital" || p.type === "police");
+  const criticalPoints = data.pois.filter(
+    (p) => p.type === "school" || p.type === "community_centre" || p.type === "place_of_worship"
+  );
+  renderQuickList("stationsList", stations, (poi) => selectRoutePoint(map, state, poi, "a"));
+  renderQuickList("criticalList", criticalPoints, (poi) => selectRoutePoint(map, state, poi, "b"));
+  document.getElementById("route-reset").addEventListener("click", () => clearRouteSelection(map, state));
+  updateRouteCoach(state);
+
   document.getElementById("speedSlider").addEventListener("input", (e) => {
     state.speed = Number(e.target.value);
   });
@@ -281,6 +359,6 @@ if (typeof module !== "undefined") {
   module.exports = {
     mulberry32, placeVehicles, VEHICLE_TYPES,
     selectWinner, nearestFacility, speedToIntervalMs,
-    formatStrategyComparison,
+    formatStrategyComparison, renderQuickList, updateRouteCoach,
   };
 }

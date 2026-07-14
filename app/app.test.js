@@ -76,3 +76,51 @@ test("formatStrategyComparison formats minute totals and savings percentage", ()
   assert.equal(f.patrolMin, "35.1");
   assert.equal(f.savings, "19.2");
 });
+
+function fakeElement() {
+  const el = {
+    className: "", textContent: "", innerHTML: "", children: [], _listeners: {},
+    classList: {
+      _set: new Set(),
+      add(c) { this._set.add(c); },
+      remove(c) { this._set.delete(c); },
+      contains(c) { return this._set.has(c); },
+    },
+    appendChild(child) { el.children.push(child); },
+    addEventListener(evt, cb) { el._listeners[evt] = cb; },
+  };
+  return el;
+}
+
+const { renderQuickList } = require("./app.js");
+
+test("renderQuickList creates one button per POI wired to onSelect", () => {
+  const container = fakeElement();
+  global.document = {
+    getElementById: (id) => (id === "list" ? container : null),
+    createElement: () => fakeElement(),
+  };
+  const pois = [{ id: "p1", name: "Hospital A" }, { id: "p2", name: "Hospital B" }];
+  const selected = [];
+  renderQuickList("list", pois, (poi) => selected.push(poi));
+  assert.equal(container.children.length, 2);
+  assert.equal(container.children[0].textContent, "Hospital A");
+  assert.equal(container.children[0].className, "quick-btn");
+  container.children[1]._listeners.click();
+  assert.deepEqual(selected, [{ id: "p2", name: "Hospital B" }]);
+});
+
+const { updateRouteCoach } = require("./app.js");
+
+test("updateRouteCoach shows contextual text for each selection state", () => {
+  const coach = fakeElement();
+  global.document = { getElementById: (id) => (id === "coach" ? coach : null) };
+  updateRouteCoach({ route: { a: null, b: null } });
+  assert.equal(coach.textContent, "Elige una estación (atajo A) o un punto crítico (atajo B) para trazar una ruta");
+  updateRouteCoach({ route: { a: { name: "X" }, b: null } });
+  assert.equal(coach.textContent, "Selecciona el punto B (destino)");
+  updateRouteCoach({ route: { a: null, b: { name: "Y" } } });
+  assert.equal(coach.textContent, "Selecciona el punto A (origen)");
+  updateRouteCoach({ route: { a: { name: "X" }, b: { name: "Y" } } });
+  assert.equal(coach.textContent, "Ruta A → B calculada");
+});
