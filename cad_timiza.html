@@ -277,14 +277,14 @@ function renderVehicleList(state, costs, winnerId) {
   }
 }
 
-function animatePath(map, state, result, color, onDone) {
-  const interval = speedToIntervalMs(state.speed);
-  const myGeneration = state.dispatchGeneration;
+function animatePath(map, tracker, speed, result, color, onDone) {
+  const interval = speedToIntervalMs(speed);
+  const myGeneration = tracker.generation;
   const explorationLayer = L.layerGroup().addTo(map);
-  state.dispatchLayers.push(explorationLayer);
+  tracker.layers.push(explorationLayer);
   let i = 0;
   const timer = setInterval(() => {
-    if (state.dispatchGeneration !== myGeneration) {
+    if (tracker.generation !== myGeneration) {
       clearInterval(timer);
       return;
     }
@@ -292,16 +292,16 @@ function animatePath(map, state, result, color, onDone) {
       clearInterval(timer);
       if (result.path) {
         const latlngs = result.path.map((nodeId) => {
-          const n = state.nodesById.get(nodeId);
+          const n = tracker.nodesById.get(nodeId);
           return [n.lat, n.lon];
         });
         const routeLine = L.polyline(latlngs, { color, weight: 4, opacity: 0.95, interactive: false }).addTo(map);
-        state.dispatchLayers.push(routeLine);
+        tracker.layers.push(routeLine);
       }
       onDone();
       return;
     }
-    const n = state.nodesById.get(result.explored[i]);
+    const n = tracker.nodesById.get(result.explored[i]);
     L.circleMarker([n.lat, n.lon], {
       radius: 2, color: "#b8860b", weight: 0, fillColor: "#b8860b", fillOpacity: 0.9, interactive: false,
     }).addTo(explorationLayer);
@@ -312,12 +312,12 @@ function animatePath(map, state, result, color, onDone) {
 const MAX_SPEED_KMH = 50;
 
 function dispatchEmergency(map, state, emergencyNode) {
-  state.dispatchGeneration++;
-  for (const layer of state.dispatchLayers) map.removeLayer(layer);
-  state.dispatchLayers = [];
-  if (state.emergencyMarker) map.removeLayer(state.emergencyMarker);
+  state.dispatch.generation++;
+  for (const layer of state.dispatch.layers) map.removeLayer(layer);
+  state.dispatch.layers = [];
+  if (state.dispatch.emergencyMarker) map.removeLayer(state.dispatch.emergencyMarker);
   const en = state.nodesById.get(emergencyNode);
-  state.emergencyMarker = L.circleMarker([en.lat, en.lon], {
+  state.dispatch.emergencyMarker = L.circleMarker([en.lat, en.lon], {
     radius: 9, color: "#ff2d2d", weight: 2, fillColor: "#ff2d2d", fillOpacity: 0.9, interactive: false,
   }).addTo(map);
 
@@ -336,11 +336,11 @@ function dispatchEmergency(map, state, emergencyNode) {
   renderVehicleList(state, costs, winner.vehicleId);
   document.getElementById("summary").textContent = "Etapa 1: buscando vehículo más cercano...";
 
-  animatePath(map, state, winner.result, "#ffffff", () => {
+  animatePath(map, state.dispatch, state.speed, winner.result, "#ffffff", () => {
     document.getElementById("summary").textContent =
       `Vehículo #${winner.vehicleId} en camino a la emergencia (${winner.cost.toFixed(1)} min). Buscando hospital...`;
     const toHospital = nearestFacility(state.adj, state.nodesById, emergencyNode, state.hospitals, MAX_SPEED_KMH);
-    animatePath(map, state, toHospital, "#4fd1c5", () => {
+    animatePath(map, state.dispatch, state.speed, toHospital, "#4fd1c5", () => {
       if (!toHospital.path || toHospital.cost === Infinity) {
         document.getElementById("summary").innerHTML =
           `Vehículo #${winner.vehicleId} → emergencia: ${winner.cost.toFixed(1)} min<br>` +
@@ -377,7 +377,8 @@ function initApp() {
 
   const state = {
     data, nodesById, vehicles, adj, hospitals, speed: 50,
-    emergencyMarker: null, dispatchLayers: [], dispatchGeneration: 0,
+    dispatch: { layers: [], generation: 0, nodesById, emergencyMarker: null },
+    route: { layers: [], generation: 0, nodesById, a: null, b: null },
   };
 
   renderStrategyPanel(data.strategyComparison);
