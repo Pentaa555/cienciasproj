@@ -12,38 +12,124 @@
     margin: 0; font-family: Arial, sans-serif; background: #0b0f0e; color: #e8f0ee;
     display: flex; height: 100vh;
   }
-  #map { background: #101614; flex: 1; }
+  #mapwrap { position: relative; flex: 1; }
+  #map { background: #101614; width: 100%; height: 100%; }
   #panel {
     width: 320px; padding: 16px; background: #131a18; border-left: 1px solid #1f5652;
-    overflow-y: auto;
+    overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
   }
-  #panel h2 { font-size: 15px; color: #4fd1c5; margin: 16px 0 8px; }
-  #panel h2:first-child { margin-top: 0; }
+
+  .brand { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #1f5652; }
+  .brand-dot { width: 9px; height: 9px; border-radius: 50%; background: #4fd1c5; box-shadow: 0 0 8px #4fd1c5; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+  .brand h1 { font-size: 14px; letter-spacing: .06em; text-transform: uppercase; margin: 0; color: #4fd1c5; }
+  .brand span { display: block; font-size: 11px; color: #8fa3a8; margin-top: 2px; }
+
+  .card { background: #182420; border: 1px solid #1f5652; border-radius: 6px; padding: 14px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: #4fd1c5; margin: 0 0 8px; }
+
   #vehicleList div, #summary div, #strategyPanel div { font-size: 12px; margin-bottom: 4px; }
   .winner { color: #4fd1c5; font-weight: bold; }
-  #speedRow { margin-top: 16px; font-size: 12px; }
+
+  .slot { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 4px; background: #101614; border: 1px solid #1f5652; margin-bottom: 8px; }
+  .slot:last-of-type { margin-bottom: 0; }
+  .slot .tag { font-family: monospace; font-size: 10px; color: #0b0f0e; padding: 2px 6px; border-radius: 3px; font-weight: 700; }
+  .slot.origin .tag { background: #4fd1c5; }
+  .slot.dest .tag { background: #ffb454; }
+  .slot .val { font-size: 12px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slot .val.empty { color: #8fa3a8; font-style: italic; }
+  #route-result { font-size: 12px; margin-top: 8px; }
+  #route-reset {
+    width: 100%; margin-top: 10px; background: transparent; border: 1px solid #1f5652; color: #8fa3a8;
+    font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 8px; border-radius: 4px; cursor: pointer;
+  }
+  #route-reset:hover { border-color: #ff5c5c; color: #ff5c5c; }
+
+  .quick-list { display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow-y: auto; }
+  .quick-btn {
+    text-align: left; background: #101614; border: 1px solid #1f5652; color: #8fa3a8; font-size: 11px;
+    padding: 6px 8px; border-radius: 4px; cursor: pointer; width: 100%;
+  }
+  .quick-btn:hover { border-color: #4fd1c5; color: #e8f0ee; }
+
+  #speedRow { font-size: 12px; }
   #speedSlider { width: 100%; }
   .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; margin-bottom: 4px; }
+  .legend-item:last-child { margin-bottom: 0; }
   .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .legend-line { width: 16px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+
+  #coach {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    background: rgba(19, 26, 24, .92); border: 1px solid #1f5652; color: #e8f0ee;
+    font-size: 12px; padding: 8px 16px; border-radius: 20px; z-index: 1000; pointer-events: none;
+  }
 </style>
 </head>
 <body>
-  <div id="map"></div>
+  <div id="mapwrap">
+    <div id="coach"></div>
+    <div id="map"></div>
+  </div>
   <div id="panel">
-    <h2>Despacho</h2>
-    <div id="summary">Haz clic en una esquina para simular una emergencia.</div>
-    <h2>Vehículos</h2>
-    <div id="vehicleList"></div>
-    <h2>Comparación de estrategias</h2>
-    <div id="strategyPanel"></div>
-    <h2>Leyenda</h2>
-    <div class="legend-item"><span class="legend-dot" style="background:#ff5c5c;"></span>Hospital</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#5c8cff;"></span>Policía</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#5ee08a;"></span>Colegio</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#ffb454;"></span>Centro comunal</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#c48bff;"></span>Templo</div>
-    <div id="speedRow">
-      Velocidad de animación
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <div>
+        <h1>CAD · Timiza</h1>
+        <span>Consola de rutas de emergencia</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Despacho</h2>
+      <div id="summary">Haz clic en una esquina para simular una emergencia.</div>
+      <h2 style="margin-top:12px;">Vehículos</h2>
+      <div id="vehicleList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Selección de ruta</h2>
+      <div class="slot origin">
+        <span class="tag">A</span>
+        <span class="val empty" id="route-a-label">clic en un atajo</span>
+      </div>
+      <div class="slot dest">
+        <span class="tag">B</span>
+        <span class="val empty" id="route-b-label">clic en un atajo</span>
+      </div>
+      <div id="route-result"></div>
+      <button id="route-reset">Limpiar selección</button>
+    </div>
+
+    <div class="card">
+      <h2>Estaciones (atajo A)</h2>
+      <div class="quick-list" id="stationsList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Puntos críticos (atajo B)</h2>
+      <div class="quick-list" id="criticalList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Comparación de estrategias</h2>
+      <div id="strategyPanel"></div>
+    </div>
+
+    <div class="card">
+      <h2>Leyenda</h2>
+      <div class="legend-item"><span class="legend-dot" style="background:#ff5c5c;"></span>Hospital</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#5c8cff;"></span>Policía</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#5ee08a;"></span>Colegio</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#ffb454;"></span>Centro comunal</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#c48bff;"></span>Templo</div>
+      <div class="legend-item"><span class="legend-line" style="background:#3a4750;"></span>Red vial</div>
+      <div class="legend-item"><span class="legend-line" style="background:#b8860b;"></span>Calles exploradas por A*</div>
+      <div class="legend-item"><span class="legend-line" style="background:#ffffff;"></span>Ruta óptima</div>
+    </div>
+
+    <div class="card">
+      <h2>Velocidad de animación</h2>
       <input id="speedSlider" type="range" min="1" max="100" value="50">
     </div>
   </div>
