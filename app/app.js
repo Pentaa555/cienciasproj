@@ -113,9 +113,80 @@ function drawBaseMap(ctx, state) {
   }
 }
 
+function speedToIntervalMs(speed) {
+  return Math.max(2, 220 - speed * 2);
+}
+
+function renderVehicleList(state, costs, winnerId) {
+  const list = document.getElementById("vehicleList");
+  list.innerHTML = "";
+  const sorted = [...costs].sort((a, b) => a.cost - b.cost);
+  for (const c of sorted) {
+    const div = document.createElement("div");
+    const v = state.vehicles.find((x) => x.id === c.vehicleId);
+    div.textContent = `${v.type} #${c.vehicleId}: ${c.cost.toFixed(1)} min`;
+    if (c.vehicleId === winnerId) div.className = "winner";
+    list.appendChild(div);
+  }
+}
+
+function animatePath(ctx, state, result, color, onDone) {
+  const interval = speedToIntervalMs(state.speed);
+  let i = 0;
+  const timer = setInterval(() => {
+    if (i >= result.explored.length) {
+      clearInterval(timer);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      result.path.forEach((nodeId, idx) => {
+        const n = state.nodesById.get(nodeId);
+        const p = projectLatLon(n.lat, n.lon, state.bounds, state.width, state.height);
+        if (idx === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+      });
+      ctx.stroke();
+      onDone();
+      return;
+    }
+    const n = state.nodesById.get(result.explored[i]);
+    const p = projectLatLon(n.lat, n.lon, state.bounds, state.width, state.height);
+    ctx.fillStyle = "#b8860b";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+    ctx.fill();
+    i++;
+  }, interval);
+}
+
 function dispatchEmergency(ctx, state, emergencyNode) {
-  // Placeholder — Task 13 replaces this with the real two-stage A* dispatch.
-  console.log("emergency at", emergencyNode);
+  drawBaseMap(ctx, state);
+  ctx.fillStyle = "#ff2d2d";
+  const en = state.nodesById.get(emergencyNode);
+  const ep = projectLatLon(en.lat, en.lon, state.bounds, state.width, state.height);
+  ctx.beginPath();
+  ctx.arc(ep.x, ep.y, 7, 0, Math.PI * 2);
+  ctx.fill();
+
+  const costs = state.vehicles.map((v) => {
+    const r = astar(state.adj, state.nodesById, v.nearestNode, emergencyNode, MAX_SPEED_KMH);
+    return { vehicleId: v.id, cost: r.cost, result: r };
+  });
+  const winner = selectWinner(costs);
+  renderVehicleList(state, costs, winner.vehicleId);
+  document.getElementById("summary").textContent = "Etapa 1: buscando vehículo más cercano...";
+
+  animatePath(ctx, state, winner.result, "#ffffff", () => {
+    document.getElementById("summary").textContent =
+      `Vehículo #${winner.vehicleId} en camino a la emergencia (${winner.cost.toFixed(1)} min). Buscando hospital...`;
+    const toHospital = nearestFacility(state.adj, state.nodesById, emergencyNode, state.hospitals, MAX_SPEED_KMH);
+    animatePath(ctx, state, toHospital, "#4fd1c5", () => {
+      const total = winner.cost + toHospital.cost;
+      document.getElementById("summary").innerHTML =
+        `Vehículo #${winner.vehicleId} → emergencia: ${winner.cost.toFixed(1)} min<br>` +
+        `Emergencia → ${toHospital.facilityId}: ${toHospital.cost.toFixed(1)} min<br>` +
+        `<b>Tiempo total: ${total.toFixed(1)} min</b>`;
+    });
+  });
 }
 
 const MAX_SPEED_KMH = 50;
@@ -163,6 +234,6 @@ if (typeof document !== "undefined") {
 if (typeof module !== "undefined") {
   module.exports = {
     mulberry32, projectLatLon, placeVehicles, VEHICLE_TYPES,
-    selectWinner, nearestFacility, computeBounds,
+    selectWinner, nearestFacility, computeBounds, speedToIntervalMs,
   };
 }

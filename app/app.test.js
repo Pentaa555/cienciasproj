@@ -82,3 +82,10 @@ test("computeBounds finds min/max lat/lon", () => {
   assert.equal(b.minLon, -74.155);
   assert.equal(b.maxLon, -74.14);
 });
+
+const { speedToIntervalMs } = require("./app.js");
+
+test("speedToIntervalMs decreases as speed increases", () => {
+  assert.ok(speedToIntervalMs(1) > speedToIntervalMs(100));
+  assert.ok(speedToIntervalMs(100) >= 2);
+});
