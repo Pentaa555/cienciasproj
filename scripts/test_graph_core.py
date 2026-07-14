@@ -199,6 +199,34 @@ class TestPatrolEdges(unittest.TestCase):
         self.assertEqual(edges, {(1, 2), (2, 3), (3, 4)})
 
 
+
+from graph_core import largest_scc_nodes
+
+
+class TestLargestSccNodes(unittest.TestCase):
+    def test_excludes_one_way_trap_reachable_only_one_direction(self):
+        # 1<->2<->3 is a mutually-reachable ring; 3->4 is one-way with no way
+        # back, so 4 can be reached but can never return - not truly connected.
+        edges = [
+            {"from": 1, "to": 2, "w": 1.0, "directed": False},
+            {"from": 2, "to": 3, "w": 1.0, "directed": False},
+            {"from": 3, "to": 4, "w": 1.0, "directed": True},
+        ]
+        node_ids = {1, 2, 3, 4}
+        result = largest_scc_nodes(node_ids, edges)
+        self.assertEqual(result, {1, 2, 3})
+
+    def test_two_way_ring_all_mutually_reachable(self):
+        edges = [
+            {"from": 1, "to": 2, "w": 1.0, "directed": False},
+            {"from": 2, "to": 3, "w": 1.0, "directed": False},
+            {"from": 3, "to": 1, "w": 1.0, "directed": False},
+        ]
+        node_ids = {1, 2, 3}
+        result = largest_scc_nodes(node_ids, edges)
+        self.assertEqual(result, {1, 2, 3})
+
+
 from graph_core import compare_strategies
 
 

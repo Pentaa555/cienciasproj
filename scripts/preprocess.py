@@ -3,29 +3,43 @@ import os
 from graph_core import (
     parse_osm, build_graph, adjacency, extract_pois,
     shortest_path, prim_mst, patrol_edges, compare_strategies,
+    largest_scc_nodes,
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OSM_PATH = os.path.join(BASE_DIR, "map(1).osm")
+OSM_PATH = os.path.join(BASE_DIR, "map(2).osm")
 OUT_PATH = os.path.join(BASE_DIR, "build", "data.json")
 
 
 def main():
     nodes, ways = parse_osm(OSM_PATH)
-    edges = build_graph(nodes, ways)
-    graph_node_ids = {e["from"] for e in edges} | {e["to"] for e in edges}
+    all_edges = build_graph(nodes, ways)
+    all_node_ids = {e["from"] for e in all_edges} | {e["to"] for e in all_edges}
+
+    main_component = largest_scc_nodes(all_node_ids, all_edges)
+    dropped = len(all_node_ids) - len(main_component)
+    if dropped:
+        print(f"dropping {dropped} nodes in {len(all_node_ids)} -> not mutually reachable "
+              f"with the main road network (disconnected fragments or one-way traps)")
+
+    edges = [e for e in all_edges if e["from"] in main_component and e["to"] in main_component]
+    graph_node_ids = main_component
     adj = adjacency(edges)
 
     pois = extract_pois(nodes, ways, graph_node_ids)
     poi_node = {p["id"]: p["node"] for p in pois}
     poi_ids = list(poi_node.keys())
 
+    # Costs aren't assumed symmetric: one-way streets mean a->b and b->a can
+    # differ (or one direction can be unreachable while the other isn't), so
+    # each ordered pair is computed independently rather than reused.
     cost_matrix = {}
-    for i, a in enumerate(poi_ids):
-        for b in poi_ids[i + 1:]:
+    for a in poi_ids:
+        for b in poi_ids:
+            if a == b:
+                continue
             _, cost = shortest_path(adj, poi_node[a], poi_node[b])
             cost_matrix[(a, b)] = cost
-            cost_matrix[(b, a)] = cost
 
     mst = prim_mst(poi_ids, cost_matrix)
     patrol = patrol_edges(mst, poi_node, adj)

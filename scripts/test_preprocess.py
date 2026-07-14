@@ -20,8 +20,8 @@ class TestPreprocessOutput(unittest.TestCase):
         by_type = {}
         for p in self.data["pois"]:
             by_type[p["type"]] = by_type.get(p["type"], 0) + 1
-        self.assertEqual(by_type.get("hospital"), 3)
-        self.assertEqual(by_type.get("police"), 1)
+        self.assertEqual(by_type.get("hospital"), 8)
+        self.assertEqual(by_type.get("police"), 7)
         self.assertGreaterEqual(by_type.get("school", 0), 8)
         self.assertGreaterEqual(by_type.get("community_centre", 0), 1)
         self.assertGreaterEqual(by_type.get("place_of_worship", 0), 1)

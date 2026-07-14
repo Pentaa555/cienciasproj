@@ -73,6 +73,61 @@ def adjacency(edges):
     return adj
 
 
+def largest_scc_nodes(node_ids, edges):
+    # One-way streets make the graph directed: a node reachable *from* some
+    # start isn't necessarily able to reach back to it. Routing needs mutual
+    # reachability between any two retained nodes, so this finds the largest
+    # strongly connected component (iterative Kosaraju, safe for large N).
+    fwd = {}
+    rev = {}
+    for e in edges:
+        a, b = e["from"], e["to"]
+        fwd.setdefault(a, []).append(b)
+        rev.setdefault(b, []).append(a)
+        if not e["directed"]:
+            fwd.setdefault(b, []).append(a)
+            rev.setdefault(a, []).append(b)
+
+    visited = set()
+    finish_order = []
+    for start in node_ids:
+        if start in visited:
+            continue
+        visited.add(start)
+        stack = [(start, iter(fwd.get(start, [])))]
+        while stack:
+            node, neighbors = stack[-1]
+            advanced = False
+            for nxt in neighbors:
+                if nxt not in visited:
+                    visited.add(nxt)
+                    stack.append((nxt, iter(fwd.get(nxt, []))))
+                    advanced = True
+                    break
+            if not advanced:
+                finish_order.append(node)
+                stack.pop()
+
+    assigned = set()
+    best_component = set()
+    for node in reversed(finish_order):
+        if node in assigned:
+            continue
+        assigned.add(node)
+        stack = [node]
+        component = [node]
+        while stack:
+            u = stack.pop()
+            for v in rev.get(u, []):
+                if v not in assigned:
+                    assigned.add(v)
+                    stack.append(v)
+                    component.append(v)
+        if len(component) > len(best_component):
+            best_component = set(component)
+    return best_component
+
+
 def dijkstra(adj, source):
     dist = {source: 0.0}
     prev = {}
