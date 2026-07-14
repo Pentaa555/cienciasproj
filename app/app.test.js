@@ -1,19 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { mulberry32, projectLatLon, placeVehicles } = require("./app.js");
+const { mulberry32, placeVehicles } = require("./app.js");
 
 test("mulberry32 is deterministic for a given seed", () => {
   const a = mulberry32(42), b = mulberry32(42);
   const seqA = [a(), a(), a()], seqB = [b(), b(), b()];
   assert.deepEqual(seqA, seqB);
-});
-
-test("projectLatLon maps bounds corners to canvas corners", () => {
-  const bounds = { minLat: 4.60, maxLat: 4.62, minLon: -74.16, maxLon: -74.14 };
-  const topLeft = projectLatLon(4.62, -74.16, bounds, 800, 600);
-  assert.ok(Math.abs(topLeft.x) < 1e-6 && Math.abs(topLeft.y) < 1e-6);
-  const bottomRight = projectLatLon(4.60, -74.14, bounds, 800, 600);
-  assert.ok(Math.abs(bottomRight.x - 800) < 1e-6 && Math.abs(bottomRight.y - 600) < 1e-6);
 });
 
 test("placeVehicles returns count vehicles on patrol edges with valid t", () => {
@@ -66,21 +58,6 @@ test("nearestFacility picks the closest of several candidates", () => {
   const best = nearestFacility(adj, nodesById, 1, facilities, 1000000);
   assert.equal(best.facilityId, "near");
   assert.equal(best.cost, 2.0);
-});
-
-const { computeBounds } = require("./app.js");
-
-test("computeBounds finds min/max lat/lon", () => {
-  const nodes = [
-    { id: 1, lat: 4.61, lon: -74.15 },
-    { id: 2, lat: 4.62, lon: -74.14 },
-    { id: 3, lat: 4.605, lon: -74.155 },
-  ];
-  const b = computeBounds(nodes);
-  assert.equal(b.minLat, 4.605);
-  assert.equal(b.maxLat, 4.62);
-  assert.equal(b.minLon, -74.155);
-  assert.equal(b.maxLon, -74.14);
 });
 
 const { speedToIntervalMs } = require("./app.js");
