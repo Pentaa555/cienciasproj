@@ -50,5 +50,45 @@ class TestParseOsm(unittest.TestCase):
         self.assertEqual(ways[1]["tags"]["highway"], "footway")
 
 
+from graph_core import build_graph, adjacency
+
+
+class TestBuildGraph(unittest.TestCase):
+    def setUp(self):
+        self.nodes = {
+            1: (4.6100, -74.1500),
+            2: (4.6101, -74.1501),
+            3: (4.6102, -74.1502),
+        }
+        self.ways = [
+            {"id": 100, "tags": {"highway": "residential"}, "nodes": [1, 2]},
+            {"id": 101, "tags": {"highway": "primary", "oneway": "yes"}, "nodes": [2, 3]},
+            {"id": 102, "tags": {"highway": "footway"}, "nodes": [1, 3]},
+        ]
+
+    def test_excludes_non_drivable(self):
+        edges = build_graph(self.nodes, self.ways)
+        self.assertEqual(len(edges), 2)
+        pairs = {(e["from"], e["to"]) for e in edges}
+        self.assertIn((1, 2), pairs)
+        self.assertIn((2, 3), pairs)
+        self.assertNotIn((1, 3), pairs)
+
+    def test_oneway_flag(self):
+        edges = build_graph(self.nodes, self.ways)
+        by_pair = {(e["from"], e["to"]): e for e in edges}
+        self.assertFalse(by_pair[(1, 2)]["directed"])
+        self.assertTrue(by_pair[(2, 3)]["directed"])
+
+    def test_adjacency_respects_directed(self):
+        edges = build_graph(self.nodes, self.ways)
+        adj = adjacency(edges)
+        neighbors_of_2 = {n for n, _ in adj[2]}
+        self.assertIn(1, neighbors_of_2)
+        self.assertIn(3, neighbors_of_2)
+        neighbors_of_3 = {n for n, _ in adj.get(3, [])}
+        self.assertNotIn(2, neighbors_of_3)
+
+
 if __name__ == "__main__":
     unittest.main()
