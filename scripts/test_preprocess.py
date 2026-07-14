@@ -1,0 +1,47 @@
+import json
+import os
+import unittest
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(BASE_DIR, "build", "data.json")
+
+
+class TestPreprocessOutput(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        with open(DATA_PATH) as f:
+            cls.data = json.load(f)
+
+    def test_has_substantial_graph(self):
+        self.assertGreater(len(self.data["nodes"]), 500)
+        self.assertGreater(len(self.data["edges"]), 500)
+
+    def test_poi_counts(self):
+        by_type = {}
+        for p in self.data["pois"]:
+            by_type[p["type"]] = by_type.get(p["type"], 0) + 1
+        self.assertEqual(by_type.get("hospital"), 3)
+        self.assertEqual(by_type.get("police"), 1)
+        self.assertGreaterEqual(by_type.get("school", 0), 8)
+
+    def test_patrol_route_connects_all_pois(self):
+        adj = {}
+        for a, b in self.data["patrolEdges"]:
+            adj.setdefault(a, set()).add(b)
+            adj.setdefault(b, set()).add(a)
+        poi_nodes = {p["node"] for p in self.data["pois"]}
+        start = next(iter(poi_nodes))
+        seen = {start}
+        stack = [start]
+        while stack:
+            u = stack.pop()
+            for v in adj.get(u, ()):
+                if v not in seen:
+                    seen.add(v)
+                    stack.append(v)
+        missing = poi_nodes - seen
+        self.assertEqual(missing, set(), f"POIs not connected by patrol route: {missing}")
+
+
+if __name__ == "__main__":
+    unittest.main()
