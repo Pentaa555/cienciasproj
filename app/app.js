@@ -70,8 +70,8 @@ const POI_LABEL = {
 
 function formatStrategyComparison(sc) {
   return {
-    individualMin: (sc.individual.total / 60).toFixed(1),
-    patrolMin: (sc.patrol.total / 60).toFixed(1),
+    individualMin: sc.individual.total.toFixed(1),
+    patrolMin: sc.patrol.total.toFixed(1),
     savings: sc.savingsPct.toFixed(1),
   };
 }

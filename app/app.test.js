@@ -69,10 +69,10 @@ test("speedToIntervalMs decreases as speed increases", () => {
 
 const { formatStrategyComparison } = require("./app.js");
 
-test("formatStrategyComparison converts seconds to minutes and formats savings", () => {
-  const sc = { individual: { total: 600 }, patrol: { total: 300 }, savingsPct: 50 };
+test("formatStrategyComparison formats minute totals and savings percentage", () => {
+  const sc = { individual: { total: 43.46 }, patrol: { total: 35.12 }, savingsPct: 19.19 };
   const f = formatStrategyComparison(sc);
-  assert.equal(f.individualMin, "10.0");
-  assert.equal(f.patrolMin, "5.0");
-  assert.equal(f.savings, "50.0");
+  assert.equal(f.individualMin, "43.5");
+  assert.equal(f.patrolMin, "35.1");
+  assert.equal(f.savings, "19.2");
 });
