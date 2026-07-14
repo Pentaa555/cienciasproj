@@ -68,6 +68,23 @@ const POI_LABEL = {
   community_centre: "Centro comunal", place_of_worship: "Templo",
 };
 
+function formatStrategyComparison(sc) {
+  return {
+    individualMin: (sc.individual.total / 60).toFixed(1),
+    patrolMin: (sc.patrol.total / 60).toFixed(1),
+    savings: sc.savingsPct.toFixed(1),
+  };
+}
+
+function renderStrategyPanel(sc) {
+  const el = document.getElementById("strategyPanel");
+  const f = formatStrategyComparison(sc);
+  el.innerHTML =
+    `<div>Despacho individual: <b>${f.individualMin} min</b></div>` +
+    `<div>Recorrido de patrullaje (MST): <b>${f.patrolMin} min</b></div>` +
+    `<div>Ahorro con patrullaje conjunto: <b>${f.savings}%</b></div>`;
+}
+
 const TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 const TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors ' +
@@ -228,6 +245,8 @@ function initApp() {
 
   const state = { data, nodesById, vehicles, adj, hospitals, speed: 50, emergencyMarker: null, dispatchLayers: [] };
 
+  renderStrategyPanel(data.strategyComparison);
+
   document.getElementById("speedSlider").addEventListener("input", (e) => {
     state.speed = Number(e.target.value);
   });
@@ -252,5 +271,6 @@ if (typeof module !== "undefined") {
   module.exports = {
     mulberry32, placeVehicles, VEHICLE_TYPES,
     selectWinner, nearestFacility, speedToIntervalMs,
+    formatStrategyComparison,
   };
 }
