@@ -921,17 +921,28 @@ git commit -m "Regenerate cad_timiza.html on Leaflet, update e2e test for #map"
 
 ### Task 8: Remove the superseded standalone files
 
+**NOTE — not a subagent task:** `cad_timizaexample.html`, `mapa_timiza.html`, and
+`Proyecto1_Rutas_Emergencia_Timiza.ipynb` were never `git add`ed in the original
+repo (they show as `??` in `git status`), so they don't exist inside the
+implementation worktree at all — a worktree only checks out tracked files.
+This step must run in the original repo working directory
+(`/home/pentaa/Documentos/cienciasproj`, not the worktree) after the worktree
+branch has been merged back, and it's plain filesystem cleanup, not a git
+operation — `git rm` would fail with "not under version control". The
+controller performs this step directly instead of dispatching an implementer.
+
 **Files:**
-- Delete: `cad_timizaexample.html`, `mapa_timiza.html`, `Proyecto1_Rutas_Emergencia_Timiza.ipynb`
+- Delete (plain `rm`, not `git rm`): `cad_timizaexample.html`, `mapa_timiza.html`, `Proyecto1_Rutas_Emergencia_Timiza.ipynb`
 
 **Interfaces:**
 - Consumes: confirmation from Task 7 that `cad_timiza.html` covers the content of all three (real tiles, 5 POI types, strategy comparison).
 - Produces: a clean repo state with `cad_timiza.html` as the single dispatch-console artifact.
 
-- [ ] **Step 1: Remove the files**
+- [ ] **Step 1: Remove the files from the original repo directory**
 
 ```bash
-git rm cad_timizaexample.html mapa_timiza.html Proyecto1_Rutas_Emergencia_Timiza.ipynb
+cd /home/pentaa/Documentos/cienciasproj
+rm cad_timizaexample.html mapa_timiza.html Proyecto1_Rutas_Emergencia_Timiza.ipynb
 ```
 
 - [ ] **Step 2: Verify nothing else references them**
@@ -939,18 +950,10 @@ git rm cad_timizaexample.html mapa_timiza.html Proyecto1_Rutas_Emergencia_Timiza
 Run: `grep -rn "cad_timizaexample\|mapa_timiza\.html\|Proyecto1_Rutas" --include="*.py" --include="*.js" --include="*.html" --include="*.md" .`
 Expected: no matches outside of `docs/superpowers/specs/` and `docs/superpowers/plans/` (design/plan documents are allowed to mention the old filenames as historical context).
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Confirm git status is unaffected by the deletion**
 
-```bash
-git commit -m "$(cat <<'EOF'
-Remove cad_timizaexample.html, mapa_timiza.html and the notebook
-
-Superseded by the single regenerated cad_timiza.html, which now covers
-real map tiles, 5 POI types, and the dispatch-strategy comparison panel
-that previously only existed in these three separate artifacts.
-EOF
-)"
-```
+Run: `git status`
+Expected: the three filenames no longer appear at all (they were untracked, so their removal leaves no diff to commit).
 
 ---
 
