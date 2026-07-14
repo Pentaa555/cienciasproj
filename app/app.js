@@ -101,7 +101,6 @@ function drawPois(map, data, nodesById) {
       radius: p.type === "school" ? 5 : 7,
       color: "#0a1015", weight: 2,
       fillColor: POI_COLOR[p.type] || "#ffffff", fillOpacity: 1,
-      interactive: false,
     }).addTo(map);
     marker.bindTooltip(`${p.name} (${POI_LABEL[p.type] || p.type})`, { direction: "top", offset: [0, -8] });
   }
@@ -138,6 +137,7 @@ function renderVehicleList(state, costs, winnerId) {
 function animatePath(map, state, result, color, onDone) {
   const interval = speedToIntervalMs(state.speed);
   const explorationLayer = L.layerGroup().addTo(map);
+  state.dispatchLayers.push(explorationLayer);
   let i = 0;
   const timer = setInterval(() => {
     if (i >= result.explored.length) {
@@ -147,7 +147,8 @@ function animatePath(map, state, result, color, onDone) {
           const n = state.nodesById.get(nodeId);
           return [n.lat, n.lon];
         });
-        L.polyline(latlngs, { color, weight: 4, opacity: 0.95, interactive: false }).addTo(map);
+        const routeLine = L.polyline(latlngs, { color, weight: 4, opacity: 0.95, interactive: false }).addTo(map);
+        state.dispatchLayers.push(routeLine);
       }
       onDone();
       return;
@@ -163,6 +164,8 @@ function animatePath(map, state, result, color, onDone) {
 const MAX_SPEED_KMH = 50;
 
 function dispatchEmergency(map, state, emergencyNode) {
+  for (const layer of state.dispatchLayers) map.removeLayer(layer);
+  state.dispatchLayers = [];
   if (state.emergencyMarker) map.removeLayer(state.emergencyMarker);
   const en = state.nodesById.get(emergencyNode);
   state.emergencyMarker = L.circleMarker([en.lat, en.lon], {
@@ -223,7 +226,7 @@ function initApp() {
   drawVehicles(map, vehicles);
   map.fitBounds(data.nodes.map((n) => [n.lat, n.lon]), { padding: [20, 20] });
 
-  const state = { data, nodesById, vehicles, adj, hospitals, speed: 50, emergencyMarker: null };
+  const state = { data, nodesById, vehicles, adj, hospitals, speed: 50, emergencyMarker: null, dispatchLayers: [] };
 
   document.getElementById("speedSlider").addEventListener("input", (e) => {
     state.speed = Number(e.target.value);
