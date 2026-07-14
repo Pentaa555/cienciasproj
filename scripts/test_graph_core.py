@@ -172,5 +172,20 @@ class TestPrimMst(unittest.TestCase):
         self.assertEqual(connected, set(poi_ids))
 
 
+from graph_core import patrol_edges
+
+
+class TestPatrolEdges(unittest.TestCase):
+    def test_union_of_shortest_paths(self):
+        adj = {
+            1: [(2, 1.0)], 2: [(1, 1.0), (3, 2.0)],
+            3: [(2, 2.0), (4, 1.0)], 4: [(3, 1.0)],
+        }
+        mst_edges = [("poiA", "poiD", 4.0)]
+        poi_node = {"poiA": 1, "poiD": 4}
+        edges = patrol_edges(mst_edges, poi_node, adj)
+        self.assertEqual(edges, {(1, 2), (2, 3), (3, 4)})
+
+
 if __name__ == "__main__":
     unittest.main()

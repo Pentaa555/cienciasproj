@@ -156,3 +156,14 @@ def prim_mst(poi_ids, cost_matrix):
         visited.add(best[1])
         remaining.remove(best[1])
     return mst
+
+
+def patrol_edges(mst_edges, poi_node, adj):
+    result = set()
+    for poi_a, poi_b, _ in mst_edges:
+        path, _ = shortest_path(adj, poi_node[poi_a], poi_node[poi_b])
+        if path is None:
+            continue
+        for a, b in zip(path, path[1:]):
+            result.add((a, b) if a < b else (b, a))
+    return result
