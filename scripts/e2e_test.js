@@ -47,13 +47,31 @@ async function main() {
     const summaryText = await page.evaluate(() => document.getElementById("summary").textContent);
     const listCount = await page.evaluate(() => document.getElementById("vehicleList").children.length);
 
+    // renderVehicleList (app/app.js) writes one div per vehicle with text
+    // "<type> #<id>: <cost> min" into #vehicleList, sorted by cost, and marks the
+    // dispatched vehicle's div with class "winner". Pull both out of the DOM so we can
+    // verify the winner is actually the minimum-cost vehicle, not just that a winner exists.
+    const { winnerCost, allCosts } = await page.evaluate(() => {
+      const parseCost = (text) => parseFloat(text.split(":")[1]);
+      const rows = Array.from(document.getElementById("vehicleList").children);
+      const allCosts = rows.map((row) => parseCost(row.textContent));
+      const winnerRow = rows.find((row) => row.classList.contains("winner"));
+      return { winnerCost: winnerRow ? parseCost(winnerRow.textContent) : null, allCosts };
+    });
+
     await page.screenshot({ path: path.join(__dirname, "..", "build", "e2e_screenshot.png") });
 
     if (listCount !== 6) throw new Error(`expected 6 vehicles in panel, got ${listCount}`);
     if (errors.length > 0) throw new Error(`console/page errors: ${errors.join("; ")}`);
     if (!/Tiempo total: \d/.test(summaryText)) throw new Error(`summary missing total time: ${summaryText}`);
+    if (winnerCost === null) throw new Error("no vehicle row has the winner class");
+    if (allCosts.length !== 6) throw new Error(`expected 6 cost values, got ${allCosts.length}`);
+    const minCost = Math.min(...allCosts);
+    if (Math.abs(winnerCost - minCost) > 1e-9) {
+      throw new Error(`winner cost ${winnerCost} is not the minimum among [${allCosts.join(", ")}]`);
+    }
 
-    console.log("E2E OK:", summaryText.replace(/\n/g, " | "));
+    console.log("E2E OK:", summaryText.replace(/\n/g, " | "), `winner cost=${winnerCost} min=${minCost}`);
   } finally {
     await browser.close();
   }

@@ -249,15 +249,17 @@ function animatePath(ctx, state, result, color, onDone) {
   const timer = setInterval(() => {
     if (i >= result.explored.length) {
       clearInterval(timer);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      result.path.forEach((nodeId, idx) => {
-        const n = state.nodesById.get(nodeId);
-        const p = projectLatLon(n.lat, n.lon, state.bounds, state.width, state.height);
-        if (idx === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
-      });
-      ctx.stroke();
+      if (result.path) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        result.path.forEach((nodeId, idx) => {
+          const n = state.nodesById.get(nodeId);
+          const p = projectLatLon(n.lat, n.lon, state.bounds, state.width, state.height);
+          if (idx === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+      }
       onDone();
       return;
     }
@@ -285,6 +287,13 @@ function dispatchEmergency(ctx, state, emergencyNode) {
     return { vehicleId: v.id, cost: r.cost, result: r };
   });
   const winner = selectWinner(costs);
+
+  if (!winner || winner.cost === Infinity) {
+    renderVehicleList(state, costs, null);
+    document.getElementById("summary").textContent = "Ningún vehículo puede llegar a la emergencia.";
+    return;
+  }
+
   renderVehicleList(state, costs, winner.vehicleId);
   document.getElementById("summary").textContent = "Etapa 1: buscando vehículo más cercano...";
 
@@ -293,6 +302,12 @@ function dispatchEmergency(ctx, state, emergencyNode) {
       `Vehículo #${winner.vehicleId} en camino a la emergencia (${winner.cost.toFixed(1)} min). Buscando hospital...`;
     const toHospital = nearestFacility(state.adj, state.nodesById, emergencyNode, state.hospitals, MAX_SPEED_KMH);
     animatePath(ctx, state, toHospital, "#4fd1c5", () => {
+      if (!toHospital.path || toHospital.cost === Infinity) {
+        document.getElementById("summary").innerHTML =
+          `Vehículo #${winner.vehicleId} → emergencia: ${winner.cost.toFixed(1)} min<br>` +
+          `Ningún hospital alcanzable desde la emergencia.`;
+        return;
+      }
       const total = winner.cost + toHospital.cost;
       document.getElementById("summary").innerHTML =
         `Vehículo #${winner.vehicleId} → emergencia: ${winner.cost.toFixed(1)} min<br>` +
@@ -327,7 +342,10 @@ function initApp() {
 
   canvas.addEventListener("click", (evt) => {
     const rect = canvas.getBoundingClientRect();
-    const cx = evt.clientX - rect.left, cy = evt.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const cx = (evt.clientX - rect.left) * scaleX;
+    const cy = (evt.clientY - rect.top) * scaleY;
     let nearest = null, nearestD = Infinity;
     for (const n of data.nodes) {
       const p = projectLatLon(n.lat, n.lon, bounds, state.width, state.height);
