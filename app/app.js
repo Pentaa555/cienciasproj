@@ -153,10 +153,15 @@ function renderVehicleList(state, costs, winnerId) {
 
 function animatePath(map, state, result, color, onDone) {
   const interval = speedToIntervalMs(state.speed);
+  const myGeneration = state.dispatchGeneration;
   const explorationLayer = L.layerGroup().addTo(map);
   state.dispatchLayers.push(explorationLayer);
   let i = 0;
   const timer = setInterval(() => {
+    if (state.dispatchGeneration !== myGeneration) {
+      clearInterval(timer);
+      return;
+    }
     if (i >= result.explored.length) {
       clearInterval(timer);
       if (result.path) {
@@ -181,6 +186,7 @@ function animatePath(map, state, result, color, onDone) {
 const MAX_SPEED_KMH = 50;
 
 function dispatchEmergency(map, state, emergencyNode) {
+  state.dispatchGeneration++;
   for (const layer of state.dispatchLayers) map.removeLayer(layer);
   state.dispatchLayers = [];
   if (state.emergencyMarker) map.removeLayer(state.emergencyMarker);
@@ -243,7 +249,10 @@ function initApp() {
   drawVehicles(map, vehicles);
   map.fitBounds(data.nodes.map((n) => [n.lat, n.lon]), { padding: [20, 20] });
 
-  const state = { data, nodesById, vehicles, adj, hospitals, speed: 50, emergencyMarker: null, dispatchLayers: [] };
+  const state = {
+    data, nodesById, vehicles, adj, hospitals, speed: 50,
+    emergencyMarker: null, dispatchLayers: [], dispatchGeneration: 0,
+  };
 
   renderStrategyPanel(data.strategyComparison);
 
