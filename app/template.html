@@ -1,13 +1,47 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>Timiza</title></head>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Consola de despacho — Timiza</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: Arial, sans-serif; background: #0b0f0e; color: #e8f0ee;
+    display: flex; height: 100vh;
+  }
+  #mapCanvas { background: #101614; flex: 1; display: block; cursor: crosshair; }
+  #panel {
+    width: 320px; padding: 16px; background: #131a18; border-left: 1px solid #1f5652;
+    overflow-y: auto;
+  }
+  #panel h2 { font-size: 15px; color: #4fd1c5; margin: 0 0 8px; }
+  #vehicleList div, #summary div { font-size: 12px; margin-bottom: 4px; }
+  .winner { color: #4fd1c5; font-weight: bold; }
+  #speedRow { margin-top: 16px; font-size: 12px; }
+  #speedSlider { width: 100%; }
+</style>
+</head>
 <body>
-<script>
+  <canvas id="mapCanvas" width="900" height="700"></canvas>
+  <div id="panel">
+    <h2>Despacho</h2>
+    <div id="summary">Haz clic en una esquina para simular una emergencia.</div>
+    <h2>Vehículos</h2>
+    <div id="vehicleList"></div>
+    <div id="speedRow">
+      Velocidad de animación
+      <input id="speedSlider" type="range" min="1" max="100" value="50">
+    </div>
+  </div>
+  <script>
 /*__GRAPH_DATA__*/
-</script>
-<script>
+  </script>
+  <script>
 //__ALGORITHMS_JS__
-</script>
-<script>
+  </script>
+  <script>
 //__APP_JS__
-</script>
-</body></html>
+  </script>
+</body>
+</html>

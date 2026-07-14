@@ -67,3 +67,18 @@ test("nearestFacility picks the closest of several candidates", () => {
   assert.equal(best.facilityId, "near");
   assert.equal(best.cost, 2.0);
 });
+
+const { computeBounds } = require("./app.js");
+
+test("computeBounds finds min/max lat/lon", () => {
+  const nodes = [
+    { id: 1, lat: 4.61, lon: -74.15 },
+    { id: 2, lat: 4.62, lon: -74.14 },
+    { id: 3, lat: 4.605, lon: -74.155 },
+  ];
+  const b = computeBounds(nodes);
+  assert.equal(b.minLat, 4.605);
+  assert.equal(b.maxLat, 4.62);
+  assert.equal(b.minLon, -74.155);
+  assert.equal(b.maxLon, -74.14);
+});
