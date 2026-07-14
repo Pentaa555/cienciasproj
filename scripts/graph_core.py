@@ -185,17 +185,18 @@ def compare_strategies(pois, cost_matrix, mst_edges):
 
     assignments = []
     total_individual = 0.0
-    for c in critical:
-        best_station = min(stations, key=lambda s: cost_matrix[(s["id"], c["id"])])
-        cost = cost_matrix[(best_station["id"], c["id"])]
-        roundtrip = 2 * cost
-        total_individual += roundtrip
-        assignments.append({
-            "poi": c["name"],
-            "station": best_station["name"],
-            "cost": cost,
-            "roundtrip": roundtrip,
-        })
+    if stations:
+        for c in critical:
+            best_station = min(stations, key=lambda s: cost_matrix[(s["id"], c["id"])])
+            cost = cost_matrix[(best_station["id"], c["id"])]
+            roundtrip = 2 * cost
+            total_individual += roundtrip
+            assignments.append({
+                "poi": c["name"],
+                "station": best_station["name"],
+                "cost": cost,
+                "roundtrip": roundtrip,
+            })
 
     mst_total = sum(e[2] for e in mst_edges)
     patrol_total = 2 * mst_total

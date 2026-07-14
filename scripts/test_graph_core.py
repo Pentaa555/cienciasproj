@@ -234,6 +234,18 @@ class TestCompareStrategies(unittest.TestCase):
         self.assertEqual(result["individual"]["assignments"], [])
         self.assertEqual(result["savingsPct"], 0.0)
 
+    def test_critical_points_without_stations_gives_zero_savings(self):
+        """Test that critical POIs with no stations (no hospital/police) don't crash."""
+        pois = [
+            {"id": "c1", "name": "School A", "type": "school", "node": 1},
+            {"id": "c2", "name": "Community Hall B", "type": "community_centre", "node": 2},
+            {"id": "c3", "name": "Church C", "type": "place_of_worship", "node": 3},
+        ]
+        result = compare_strategies(pois, {}, [])
+        self.assertEqual(result["individual"]["total"], 0.0)
+        self.assertEqual(result["individual"]["assignments"], [])
+        self.assertEqual(result["savingsPct"], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
