@@ -144,5 +144,33 @@ class TestExtractPois(unittest.TestCase):
         self.assertEqual(pois[0]["node"], 2)
 
 
+from graph_core import prim_mst
+
+
+class TestPrimMst(unittest.TestCase):
+    def test_classic_mst(self):
+        poi_ids = ["A", "B", "C", "D"]
+        raw = {("A", "B"): 1.0, ("A", "C"): 3.0, ("A", "D"): 4.0,
+               ("B", "C"): 2.0, ("B", "D"): 5.0, ("C", "D"): 6.0}
+        cost_matrix = {}
+        for (a, b), c in raw.items():
+            cost_matrix[(a, b)] = c
+            cost_matrix[(b, a)] = c
+        mst = prim_mst(poi_ids, cost_matrix)
+        self.assertEqual(len(mst), 3)
+        total = sum(e[2] for e in mst)
+        self.assertEqual(total, 7.0)
+        connected = {poi_ids[0]}
+        changed = True
+        while changed:
+            changed = False
+            for a, b, _ in mst:
+                if a in connected and b not in connected:
+                    connected.add(b); changed = True
+                elif b in connected and a not in connected:
+                    connected.add(a); changed = True
+        self.assertEqual(connected, set(poi_ids))
+
+
 if __name__ == "__main__":
     unittest.main()

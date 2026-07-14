@@ -137,3 +137,22 @@ def extract_pois(nodes, ways, graph_node_ids):
             "node": nearest,
         })
     return pois
+
+
+def prim_mst(poi_ids, cost_matrix):
+    if not poi_ids:
+        return []
+    visited = {poi_ids[0]}
+    remaining = set(poi_ids[1:])
+    mst = []
+    while remaining:
+        best = None
+        for a in visited:
+            for b in remaining:
+                c = cost_matrix[(a, b)]
+                if best is None or c < best[2]:
+                    best = (a, b, c)
+        mst.append(best)
+        visited.add(best[1])
+        remaining.remove(best[1])
+    return mst
