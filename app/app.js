@@ -41,6 +41,29 @@ function placeVehicles(patrolEdgeList, nodesById, rng, count) {
   return vehicles;
 }
 
+function selectWinner(costs) {
+  return costs.reduce((best, c) => {
+    if (best === null) return c;
+    if (c.cost < best.cost) return c;
+    if (c.cost === best.cost && c.vehicleId < best.vehicleId) return c;
+    return best;
+  }, null);
+}
+
+function nearestFacility(adj, nodesById, fromNode, facilities, maxSpeedKmh) {
+  let best = null;
+  for (const f of facilities) {
+    const r = astar(adj, nodesById, fromNode, f.node, maxSpeedKmh);
+    if (best === null || r.cost < best.cost) {
+      best = { facilityId: f.id, node: f.node, path: r.path, cost: r.cost, explored: r.explored };
+    }
+  }
+  return best;
+}
+
 if (typeof module !== "undefined") {
-  module.exports = { mulberry32, projectLatLon, placeVehicles, VEHICLE_TYPES };
+  module.exports = {
+    mulberry32, projectLatLon, placeVehicles, VEHICLE_TYPES,
+    selectWinner, nearestFacility,
+  };
 }

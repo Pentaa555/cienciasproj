@@ -38,3 +38,32 @@ test("placeVehicles returns count vehicles on patrol edges with valid t", () => 
     }
   }
 });
+
+const { selectWinner, nearestFacility } = require("./app.js");
+const { buildAdjacency } = require("./algorithms.js");
+
+test("selectWinner picks minimum cost, ties broken by lowest vehicleId", () => {
+  const costs = [
+    { vehicleId: 2, cost: 5.0 },
+    { vehicleId: 0, cost: 5.0 },
+    { vehicleId: 1, cost: 7.0 },
+  ];
+  const winner = selectWinner(costs);
+  assert.equal(winner.vehicleId, 0);
+});
+
+test("nearestFacility picks the closest of several candidates", () => {
+  global.astar = require("./algorithms.js").astar;
+  const edges = [
+    { from: 1, to: 2, w: 2.0, directed: false },
+    { from: 1, to: 3, w: 9.0, directed: false },
+  ];
+  const adj = buildAdjacency(edges);
+  const nodesById = new Map([
+    [1, { lat: 0, lon: 0 }], [2, { lat: 0, lon: 0 }], [3, { lat: 0, lon: 0 }],
+  ]);
+  const facilities = [{ id: "near", node: 2 }, { id: "far", node: 3 }];
+  const best = nearestFacility(adj, nodesById, 1, facilities, 1000000);
+  assert.equal(best.facilityId, "near");
+  assert.equal(best.cost, 2.0);
+});
