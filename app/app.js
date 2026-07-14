@@ -49,7 +49,7 @@ function nearestFacility(adj, nodesById, fromNode, facilities, maxSpeedKmh) {
   for (const f of facilities) {
     const r = astar(adj, nodesById, fromNode, f.node, maxSpeedKmh);
     if (best === null || r.cost < best.cost) {
-      best = { facilityId: f.id, node: f.node, path: r.path, cost: r.cost, explored: r.explored };
+      best = { facilityId: f.id, node: f.node, path: r.path, cost: r.cost, explored: r.explored, cameFrom: r.cameFrom };
     }
   }
   return best;
@@ -118,7 +118,7 @@ const TILE_ATTRIBUTION =
   '&copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 function buildMap() {
-  const map = L.map("map", { preferCanvas: true, zoomControl: false });
+  const map = L.map("map", { preferCanvas: true, zoomControl: false, maxBoundsViscosity: 1.0 });
   L.control.zoom({ position: "bottomright" }).addTo(map);
   L.tileLayer(TILE_URL, { minZoom: 0, maxZoom: 20, subdomains: "abcd", attribution: TILE_ATTRIBUTION }).addTo(map);
   return map;
@@ -183,7 +183,7 @@ function computeAndAnimateRoute(map, state) {
   for (const layer of state.route.layers) map.removeLayer(layer);
   state.route.layers = [];
   const result = astar(state.adj, state.nodesById, state.route.a.node, state.route.b.node, MAX_SPEED_KMH);
-  animatePath(map, state.route, state.speed, result, "#ffffff", () => {
+  animatePath(map, state, state.route, result, "#ffffff", () => {
     const resultEl = document.getElementById("route-result");
     if (!result.path || result.cost === Infinity) {
       resultEl.textContent = "Sin ruta posible entre estos dos puntos.";
@@ -220,19 +220,15 @@ function clearRouteSelection(map, state) {
   updateRouteCoach(state);
 }
 
-function animatePath(map, tracker, speed, result, color, onDone) {
-  const interval = speedToIntervalMs(speed);
+function animatePath(map, state, tracker, result, color, onDone) {
   const myGeneration = tracker.generation;
   const explorationLayer = L.layerGroup().addTo(map);
   tracker.layers.push(explorationLayer);
   let i = 0;
-  const timer = setInterval(() => {
-    if (tracker.generation !== myGeneration) {
-      clearInterval(timer);
-      return;
-    }
+
+  function step() {
+    if (tracker.generation !== myGeneration) return;
     if (i >= result.explored.length) {
-      clearInterval(timer);
       if (result.path) {
         const latlngs = result.path.map((nodeId) => {
           const n = tracker.nodesById.get(nodeId);
@@ -244,12 +240,19 @@ function animatePath(map, tracker, speed, result, color, onDone) {
       onDone();
       return;
     }
-    const n = tracker.nodesById.get(result.explored[i]);
-    L.circleMarker([n.lat, n.lon], {
-      radius: 2, color: "#b8860b", weight: 0, fillColor: "#b8860b", fillOpacity: 0.9, interactive: false,
-    }).addTo(explorationLayer);
+    const nodeId = result.explored[i];
+    const parentId = result.cameFrom.get(nodeId);
+    if (parentId !== undefined) {
+      const n = tracker.nodesById.get(nodeId);
+      const p = tracker.nodesById.get(parentId);
+      L.polyline([[p.lat, p.lon], [n.lat, n.lon]], {
+        color: "#b8860b", weight: 2, opacity: 0.85, interactive: false,
+      }).addTo(explorationLayer);
+    }
     i++;
-  }, interval);
+    setTimeout(step, speedToIntervalMs(state.speed));
+  }
+  step();
 }
 
 const MAX_SPEED_KMH = 50;
@@ -279,11 +282,11 @@ function dispatchEmergency(map, state, emergencyNode) {
   renderVehicleList(state, costs, winner.vehicleId);
   document.getElementById("summary").textContent = "Etapa 1: buscando vehículo más cercano...";
 
-  animatePath(map, state.dispatch, state.speed, winner.result, "#ffffff", () => {
+  animatePath(map, state, state.dispatch, winner.result, "#ffffff", () => {
     document.getElementById("summary").textContent =
       `Vehículo #${winner.vehicleId} en camino a la emergencia (${winner.cost.toFixed(1)} min). Buscando hospital...`;
     const toHospital = nearestFacility(state.adj, state.nodesById, emergencyNode, state.hospitals, MAX_SPEED_KMH);
-    animatePath(map, state.dispatch, state.speed, toHospital, "#4fd1c5", () => {
+    animatePath(map, state, state.dispatch, toHospital, "#4fd1c5", () => {
       if (!toHospital.path || toHospital.cost === Infinity) {
         document.getElementById("summary").innerHTML =
           `Vehículo #${winner.vehicleId} → emergencia: ${winner.cost.toFixed(1)} min<br>` +
@@ -316,7 +319,10 @@ function initApp() {
   drawPatrolRoute(map, data, nodesById);
   drawPois(map, data, nodesById);
   drawVehicles(map, vehicles);
-  map.fitBounds(data.nodes.map((n) => [n.lat, n.lon]), { padding: [20, 20] });
+  const dataBounds = L.latLngBounds(data.nodes.map((n) => [n.lat, n.lon]));
+  map.fitBounds(dataBounds, { padding: [20, 20] });
+  map.setMinZoom(map.getZoom());
+  map.setMaxBounds(dataBounds.pad(0.2));
 
   const state = {
     data, nodesById, vehicles, adj, hospitals, speed: 50,

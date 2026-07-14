@@ -49,7 +49,7 @@ function astar(adj, nodesById, start, goal, maxSpeedKmh) {
         path.push(cameFrom.get(path[path.length - 1]));
       }
       path.reverse();
-      return { path, cost: gScore.get(goal), explored };
+      return { path, cost: gScore.get(goal), explored, cameFrom };
     }
 
     for (const [neighbor, w] of adj.get(current) || []) {
@@ -62,7 +62,7 @@ function astar(adj, nodesById, start, goal, maxSpeedKmh) {
       }
     }
   }
-  return { path: null, cost: Infinity, explored };
+  return { path: null, cost: Infinity, explored, cameFrom };
 }
 
 if (typeof module !== "undefined") {
