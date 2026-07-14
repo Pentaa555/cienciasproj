@@ -1,0 +1,40 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const { mulberry32, projectLatLon, placeVehicles } = require("./app.js");
+
+test("mulberry32 is deterministic for a given seed", () => {
+  const a = mulberry32(42), b = mulberry32(42);
+  const seqA = [a(), a(), a()], seqB = [b(), b(), b()];
+  assert.deepEqual(seqA, seqB);
+});
+
+test("projectLatLon maps bounds corners to canvas corners", () => {
+  const bounds = { minLat: 4.60, maxLat: 4.62, minLon: -74.16, maxLon: -74.14 };
+  const topLeft = projectLatLon(4.62, -74.16, bounds, 800, 600);
+  assert.ok(Math.abs(topLeft.x) < 1e-6 && Math.abs(topLeft.y) < 1e-6);
+  const bottomRight = projectLatLon(4.60, -74.14, bounds, 800, 600);
+  assert.ok(Math.abs(bottomRight.x - 800) < 1e-6 && Math.abs(bottomRight.y - 600) < 1e-6);
+});
+
+test("placeVehicles returns count vehicles on patrol edges with valid t", () => {
+  const patrolEdgeList = [
+    { from: 1, to: 2, w: 3.0 },
+    { from: 2, to: 3, w: 1.0 },
+  ];
+  const nodesById = new Map([
+    [1, { lat: 4.61, lon: -74.15 }],
+    [2, { lat: 4.611, lon: -74.151 }],
+    [3, { lat: 4.612, lon: -74.152 }],
+  ]);
+  for (let seed = 0; seed < 20; seed++) {
+    const rng = mulberry32(seed);
+    const vehicles = placeVehicles(patrolEdgeList, nodesById, rng, 6);
+    assert.equal(vehicles.length, 6);
+    for (const v of vehicles) {
+      assert.ok(v.t >= 0 && v.t < 1);
+      const onEdge = patrolEdgeList.some((e) => e.from === v.edge[0] && e.to === v.edge[1]);
+      assert.ok(onEdge);
+      assert.ok(v.nearestNode === v.edge[0] || v.nearestNode === v.edge[1]);
+    }
+  }
+});
