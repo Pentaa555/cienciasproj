@@ -19,7 +19,7 @@ async function main() {
     page.on("console", (msg) => { if (msg.type() === "error") errors.push(msg.text()); });
 
     await page.goto(`file://${HTML_PATH}`);
-    await page.waitForSelector("#mapCanvas");
+    await page.waitForSelector("#map");
 
     const initialCount = await page.evaluate(() => document.getElementById("vehicleList").children.length);
     if (initialCount !== 0) throw new Error(`expected empty vehicle list before click, got ${initialCount}`);
@@ -37,7 +37,7 @@ async function main() {
       slider.dispatchEvent(new Event("input"));
     });
 
-    await page.click("#mapCanvas", { offset: { x: 450, y: 350 } });
+    await page.click("#map", { offset: { x: 200, y: 300 } });
 
     await page.waitForFunction(
       () => document.getElementById("summary").textContent.includes("Tiempo total"),
