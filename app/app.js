@@ -154,8 +154,8 @@ function vehicleIcon(type) {
   return L.divIcon({
     className: "vehicle-icon",
     html: type === "ambulancia" ? "🚑" : "🚓",
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
   });
 }
 
@@ -310,7 +310,7 @@ function initApp() {
     const match = data.edges.find((e) => (e.from === a && e.to === b) || (e.from === b && e.to === a));
     return { from: a, to: b, w: match ? match.w : 1 };
   });
-  const rng = mulberry32(20260713);
+  const rng = mulberry32((Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0);
   const vehicles = placeVehicles(patrolEdgeList, nodesById, rng, 6);
   const hospitals = data.pois.filter((p) => p.type === "hospital");
 

@@ -143,6 +143,16 @@ class TestExtractPois(unittest.TestCase):
         self.assertEqual(pois[0]["name"], "Test School")
         self.assertEqual(pois[0]["node"], 2)
 
+    def test_unnamed_pois_get_a_readable_numbered_fallback(self):
+        nodes = {1: (4.6100, -74.1500), 10: (4.6101, -74.1501), 11: (4.6102, -74.1502)}
+        ways = [
+            {"id": 300, "tags": {"amenity": "community_centre"}, "nodes": [10]},
+            {"id": 301, "tags": {"amenity": "community_centre"}, "nodes": [11]},
+        ]
+        pois = extract_pois(nodes, ways, graph_node_ids={1})
+        names = sorted(p["name"] for p in pois)
+        self.assertEqual(names, ["Centro comunal sin nombre #1", "Centro comunal sin nombre #2"])
+
 
 class TestExtractPoisAmenityTypes(unittest.TestCase):
     def test_recognizes_community_centre_and_place_of_worship(self):

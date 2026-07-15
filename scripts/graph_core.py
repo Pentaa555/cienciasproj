@@ -166,6 +166,14 @@ POI_AMENITIES = {
     "place_of_worship": "place_of_worship",
 }
 
+POI_TYPE_LABEL_ES = {
+    "hospital": "Hospital",
+    "police": "Policía",
+    "school": "Colegio",
+    "community_centre": "Centro comunal",
+    "place_of_worship": "Templo",
+}
+
 
 def _way_centroid(way, nodes):
     coords = [nodes[n] for n in way["nodes"] if n in nodes]
@@ -179,6 +187,7 @@ def _way_centroid(way, nodes):
 def extract_pois(nodes, ways, graph_node_ids):
     candidates = list(graph_node_ids)
     pois = []
+    unnamed_counts = {}
     for way in ways:
         amenity = way["tags"].get("amenity")
         if amenity not in POI_AMENITIES:
@@ -191,10 +200,15 @@ def extract_pois(nodes, ways, graph_node_ids):
             candidates,
             key=lambda nid: haversine_m(lat, lon, nodes[nid][0], nodes[nid][1]),
         )
+        poi_type = POI_AMENITIES[amenity]
+        name = way["tags"].get("name")
+        if not name:
+            unnamed_counts[poi_type] = unnamed_counts.get(poi_type, 0) + 1
+            name = f"{POI_TYPE_LABEL_ES[poi_type]} sin nombre #{unnamed_counts[poi_type]}"
         pois.append({
             "id": f"poi_{way['id']}",
-            "name": way["tags"].get("name", "?"),
-            "type": POI_AMENITIES[amenity],
+            "name": name,
+            "type": poi_type,
             "node": nearest,
         })
     return pois
