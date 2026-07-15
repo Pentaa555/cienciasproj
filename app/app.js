@@ -44,6 +44,12 @@ function selectWinner(costs) {
   }, null);
 }
 
+function buildRaceCandidates(costs, winnerId) {
+  return costs
+    .filter((c) => c.result.path)
+    .map((c) => ({ vehicleId: c.vehicleId, path: c.result.path, isWinner: c.vehicleId === winnerId }));
+}
+
 function nearestFacility(adj, nodesById, fromNode, facilities, maxSpeedKmh) {
   let best = null;
   for (const f of facilities) {
@@ -399,5 +405,6 @@ if (typeof module !== "undefined") {
     mulberry32, placeVehicles, VEHICLE_TYPES,
     selectWinner, nearestFacility, speedToIntervalMs,
     formatStrategyComparison, renderQuickList, updateRouteCoach,
+    buildRaceCandidates,
   };
 }

@@ -44,6 +44,38 @@ test("selectWinner picks minimum cost, ties broken by lowest vehicleId", () => {
   assert.equal(winner.vehicleId, 0);
 });
 
+const { buildRaceCandidates } = require("./app.js");
+
+test("buildRaceCandidates filters unreachable vehicles and flags the winner", () => {
+  const costs = [
+    { vehicleId: 0, cost: 5.0, result: { path: [1, 2, 3] } },
+    { vehicleId: 1, cost: Infinity, result: { path: null } },
+    { vehicleId: 2, cost: 3.0, result: { path: [4, 5] } },
+  ];
+  const candidates = buildRaceCandidates(costs, 2);
+  assert.deepEqual(candidates, [
+    { vehicleId: 0, path: [1, 2, 3], isWinner: false },
+    { vehicleId: 2, path: [4, 5], isWinner: true },
+  ]);
+});
+
+test("buildRaceCandidates preserves input order and flags a mid-list winner", () => {
+  const costs = [
+    { vehicleId: 5, cost: 2.0, result: { path: [9] } },
+    { vehicleId: 3, cost: 1.0, result: { path: [8] } },
+    { vehicleId: 1, cost: 4.0, result: { path: [7] } },
+  ];
+  const candidates = buildRaceCandidates(costs, 3);
+  assert.deepEqual(
+    candidates.map((c) => c.vehicleId),
+    [5, 3, 1]
+  );
+  assert.deepEqual(
+    candidates.map((c) => c.isWinner),
+    [false, true, false]
+  );
+});
+
 test("nearestFacility picks the closest of several candidates", () => {
   global.astar = require("./algorithms.js").astar;
   const edges = [
