@@ -8,7 +8,7 @@ function mulberry32(seed) {
   };
 }
 
-const VEHICLE_TYPES = ["ambulancia", "patrulla"];
+const VEHICLE_TYPES = ["ambulancia"];
 
 function placeVehicles(patrolEdgeList, nodesById, rng, count) {
   const total = patrolEdgeList.reduce((s, e) => s + e.w, 0);
@@ -65,6 +65,47 @@ function speedToIntervalMs(speed) {
   return Math.max(2, 220 - speed * 2);
 }
 
+function formatDuration(minutes) {
+  const totalSeconds = Math.round(minutes * 60);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function pathDistanceM(path, nodesById) {
+  let total = 0;
+  for (let i = 1; i < path.length; i++) {
+    const a = nodesById.get(path[i - 1]);
+    const b = nodesById.get(path[i]);
+    total += haversineM(a.lat, a.lon, b.lat, b.lon);
+  }
+  return total;
+}
+
+function renderRouteStats(el, result, nodesById) {
+  const distance = Math.round(pathDistanceM(result.path, nodesById));
+  const segments = result.path.length - 1;
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Tiempo (min:seg)</div>
+        <div class="stat-value accent">${formatDuration(result.cost)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Distancia (m)</div>
+        <div class="stat-value accent">${distance}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Nodos expandidos</div>
+        <div class="stat-value warn">${result.explored.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Tramos de calle</div>
+        <div class="stat-value accent">${segments}</div>
+      </div>
+    </div>`;
+}
+
 const POI_COLOR = {
   hospital: "#ff5c5c", police: "#5c8cff", school: "#5ee08a",
   community_centre: "#ffb454", place_of_worship: "#c48bff",
@@ -72,6 +113,10 @@ const POI_COLOR = {
 const POI_LABEL = {
   hospital: "Hospital", police: "Policía", school: "Colegio",
   community_centre: "Centro comunal", place_of_worship: "Templo",
+};
+const POI_ICON = {
+  hospital: "🏥", police: "👮", school: "🏫",
+  community_centre: "🏛️", place_of_worship: "⛪",
 };
 
 function renderQuickList(elementId, pois, onSelect) {
@@ -144,15 +189,22 @@ function drawPatrolRoute(map, data, nodesById) {
   }
 }
 
+function poiIcon(type) {
+  const color = POI_COLOR[type] || "#ffffff";
+  return L.divIcon({
+    className: "poi-icon",
+    html: `<span style="background:${color};">${POI_ICON[type] || "📍"}</span>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+}
+
 function drawPois(map, data, nodesById) {
   for (const p of data.pois) {
     const n = nodesById.get(p.node);
-    const marker = L.circleMarker([n.lat, n.lon], {
-      radius: p.type === "school" ? 5 : 7,
-      color: "#0a1015", weight: 2,
-      fillColor: POI_COLOR[p.type] || "#ffffff", fillOpacity: 1,
-    }).addTo(map);
+    const marker = L.marker([n.lat, n.lon], { icon: poiIcon(p.type), interactive: true }).addTo(map);
     marker.bindTooltip(`${p.name} (${POI_LABEL[p.type] || p.type})`, { direction: "top", offset: [0, -8] });
+    marker.on("click", (e) => map.fire("click", e));
   }
 }
 
@@ -167,7 +219,9 @@ function vehicleIcon(type) {
 
 function drawVehicles(map, vehicles) {
   for (const v of vehicles) {
-    L.marker([v.lat, v.lon], { icon: vehicleIcon(v.type), interactive: false }).addTo(map);
+    const marker = L.marker([v.lat, v.lon], { icon: vehicleIcon(v.type), interactive: true }).addTo(map);
+    marker.bindTooltip(`${v.type} #${v.id}`, { direction: "top", offset: [0, -14] });
+    marker.on("click", (e) => map.fire("click", e));
   }
 }
 
@@ -207,7 +261,7 @@ function computeAndAnimateRoute(map, state) {
     if (!result.path || result.cost === Infinity) {
       resultEl.textContent = "Sin ruta posible entre estos dos puntos.";
     } else {
-      resultEl.innerHTML = `Ruta A → B: <b>${result.cost.toFixed(1)} min</b>`;
+      renderRouteStats(resultEl, result, state.nodesById);
     }
     finishRoute(map, state);
   });
@@ -283,8 +337,7 @@ const RACE_PAUSE_MS = 500;
 function raceCandidateRoutes(map, state, costs, winner, onDone) {
   const myGeneration = state.dispatch.generation;
   const candidates = buildRaceCandidates(costs, winner.vehicleId);
-  let winnerLine = null;
-  const loserLines = [];
+  const raceLines = [];
 
   candidates.forEach((c, i) => {
     setTimeout(() => {
@@ -297,21 +350,16 @@ function raceCandidateRoutes(map, state, costs, winner, onDone) {
         ? { color: "#ffffff", weight: 4, opacity: 0.95, interactive: false }
         : { color: "#b8860b", weight: 2, opacity: 0.6, interactive: false };
       const line = L.polyline(latlngs, style).addTo(map);
-      if (c.isWinner) {
-        winnerLine = line;
-      } else {
-        loserLines.push(line);
-      }
+      raceLines.push({ line, isWinner: c.isWinner });
 
       if (i === candidates.length - 1) {
         setTimeout(() => {
           if (state.dispatch.generation !== myGeneration) return;
-          if (winnerLine) state.dispatch.layers.push(winnerLine);
-          for (const line of loserLines) {
+          for (const { line, isWinner } of raceLines) {
             map.removeLayer(line);
-            state.dispatch.hiddenLayers.push(line);
+            if (!isWinner) state.dispatch.hiddenLayers.push(line);
           }
-          onDone();
+          animatePath(map, state, state.dispatch, winner.result, "#ffffff", "#4fc3f7", onDone);
         }, RACE_PAUSE_MS);
       }
     }, i * RACE_STAGGER_MS);

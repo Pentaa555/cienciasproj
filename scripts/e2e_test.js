@@ -25,12 +25,14 @@ async function main() {
     if (initialCount !== 0) throw new Error(`expected empty vehicle list before click, got ${initialCount}`);
 
     // Deviation from the task brief: the default speed slider value (50) maps to a
-    // 120ms animation tick (speedToIntervalMs), and on the real ~2000-node graph each
-    // A* stage explores 300-450+ nodes. That's 35-55s per stage, far past the brief's
-    // literal 15000ms waitForFunction budget — a timing-constant mismatch in the spec's
-    // worked example, not a bug in dispatchEmergency itself. Nudging the slider to its
-    // max (100 -> 20ms/tick) via the real UI control keeps this an end-to-end exercise
-    // of the actual app while finishing in well under a minute.
+    // 120ms animation tick (speedToIntervalMs), and the current road network (expanded
+    // to ~9800 nodes, see "Expand road network to larger OSM extract") makes each A*
+    // stage explore ~2000-2500 nodes. Two stages (vehicle->emergency, emergency->hospital)
+    // at max speed (20ms/tick) is close to 100s — past a 15-30s waitForFunction budget,
+    // a timing-constant mismatch that re-appeared as the graph grew, not a bug in
+    // dispatchEmergency itself. Nudging the slider to its max (100 -> 20ms/tick) via the
+    // real UI control keeps this an end-to-end exercise of the actual app; the timeout is
+    // sized for that worst case with headroom.
     await page.evaluate(() => {
       const slider = document.getElementById("speedSlider");
       slider.value = "100";
@@ -41,7 +43,7 @@ async function main() {
 
     await page.waitForFunction(
       () => document.getElementById("summary").textContent.includes("Tiempo total"),
-      { timeout: 30000 }
+      { timeout: 150000 }
     );
 
     const summaryText = await page.evaluate(() => document.getElementById("summary").textContent);
