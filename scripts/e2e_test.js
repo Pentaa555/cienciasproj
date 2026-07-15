@@ -71,6 +71,18 @@ async function main() {
       throw new Error(`winner cost ${winnerCost} is not the minimum among [${allCosts.join(", ")}]`);
     }
 
+    // The "Ver todas las rutas" toggle button only appears once the whole
+    // dispatch (both stages) has finished, and flips its own label on click.
+    const showRoutesDisplay = await page.evaluate(() => document.getElementById("showAllRoutes").style.display);
+    if (showRoutesDisplay !== "block") {
+      throw new Error(`expected "Ver todas las rutas" button visible after dispatch completes, got display="${showRoutesDisplay}"`);
+    }
+    await page.click("#showAllRoutes");
+    const showRoutesText = await page.evaluate(() => document.getElementById("showAllRoutes").textContent);
+    if (showRoutesText !== "Ocultar rutas") {
+      throw new Error(`expected button text to toggle to "Ocultar rutas", got "${showRoutesText}"`);
+    }
+
     await page.evaluate(() => {
       document.getElementById("stationsList").children[0].click();
       document.getElementById("criticalList").children[0].click();
