@@ -183,7 +183,7 @@ function computeAndAnimateRoute(map, state) {
   for (const layer of state.route.layers) map.removeLayer(layer);
   state.route.layers = [];
   const result = astar(state.adj, state.nodesById, state.route.a.node, state.route.b.node, MAX_SPEED_KMH);
-  animatePath(map, state, state.route, result, "#ffffff", () => {
+  animatePath(map, state, state.route, result, "#ffffff", "#b8860b", () => {
     const resultEl = document.getElementById("route-result");
     if (!result.path || result.cost === Infinity) {
       resultEl.textContent = "Sin ruta posible entre estos dos puntos.";
@@ -220,7 +220,7 @@ function clearRouteSelection(map, state) {
   updateRouteCoach(state);
 }
 
-function animatePath(map, state, tracker, result, color, onDone) {
+function animatePath(map, state, tracker, result, color, exploreColor, onDone) {
   const myGeneration = tracker.generation;
   const explorationLayer = L.layerGroup().addTo(map);
   tracker.layers.push(explorationLayer);
@@ -246,7 +246,7 @@ function animatePath(map, state, tracker, result, color, onDone) {
       const n = tracker.nodesById.get(nodeId);
       const p = tracker.nodesById.get(parentId);
       L.polyline([[p.lat, p.lon], [n.lat, n.lon]], {
-        color: "#b8860b", weight: 2, opacity: 0.85, interactive: false,
+        color: exploreColor, weight: 2, opacity: 0.85, interactive: false,
       }).addTo(explorationLayer);
     }
     i++;
@@ -282,11 +282,11 @@ function dispatchEmergency(map, state, emergencyNode) {
   renderVehicleList(state, costs, winner.vehicleId);
   document.getElementById("summary").textContent = "Etapa 1: buscando vehículo más cercano...";
 
-  animatePath(map, state, state.dispatch, winner.result, "#ffffff", () => {
+  animatePath(map, state, state.dispatch, winner.result, "#ffffff", "#b8860b", () => {
     document.getElementById("summary").textContent =
       `Vehículo #${winner.vehicleId} en camino a la emergencia (${winner.cost.toFixed(1)} min). Buscando hospital...`;
     const toHospital = nearestFacility(state.adj, state.nodesById, emergencyNode, state.hospitals, MAX_SPEED_KMH);
-    animatePath(map, state, state.dispatch, toHospital, "#4fd1c5", () => {
+    animatePath(map, state, state.dispatch, toHospital, "#4fd1c5", "#ff6ec7", () => {
       if (!toHospital.path || toHospital.cost === Infinity) {
         document.getElementById("summary").innerHTML =
           `Vehículo #${winner.vehicleId} → emergencia: ${winner.cost.toFixed(1)} min<br>` +
