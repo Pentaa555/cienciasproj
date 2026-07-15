@@ -44,6 +44,11 @@
     font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 8px; border-radius: 4px; cursor: pointer;
   }
   #route-reset:hover { border-color: #ff5c5c; color: #ff5c5c; }
+  #showAllRoutes {
+    width: 100%; margin-top: 10px; background: transparent; border: 1px solid #1f5652; color: #8fa3a8;
+    font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 8px; border-radius: 4px; cursor: pointer;
+  }
+  #showAllRoutes:hover { border-color: #4fd1c5; color: #4fd1c5; }
 
   .quick-list { display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow-y: auto; }
   .quick-btn {
@@ -88,6 +93,7 @@
       <div id="summary">Haz clic en una esquina para simular una emergencia.</div>
       <h2 style="margin-top:12px;">Vehículos</h2>
       <div id="vehicleList"></div>
+      <button id="showAllRoutes" style="display:none;">Ver todas las rutas</button>
     </div>
 
     <div class="card">
@@ -128,7 +134,7 @@
       <div class="legend-item"><span class="legend-dot" style="background:#c48bff;"></span>Templo</div>
       <div class="legend-item"><span class="legend-line" style="background:#3a4750;"></span>Red vial</div>
       <div class="legend-item"><span class="legend-line" style="background:#4fd1c5;"></span>Recorrido de patrullaje (MST)</div>
-      <div class="legend-item"><span class="legend-line" style="background:#b8860b;"></span>Calles exploradas (a la emergencia)</div>
+      <div class="legend-item"><span class="legend-line" style="background:#b8860b;"></span>Rutas candidatas (vehículos)</div>
       <div class="legend-item"><span class="legend-line" style="background:#ff6ec7;"></span>Calles exploradas (al hospital)</div>
       <div class="legend-item"><span class="legend-line" style="background:#ffffff;"></span>Ruta óptima (a la emergencia)</div>
       <div class="legend-item"><span class="legend-line" style="background:#ffd93d;"></span>Ruta óptima (al hospital)</div>

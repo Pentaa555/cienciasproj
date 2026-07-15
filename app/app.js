@@ -277,6 +277,47 @@ function animatePath(map, state, tracker, result, color, exploreColor, onDone) {
   step();
 }
 
+const RACE_STAGGER_MS = 100;
+const RACE_PAUSE_MS = 500;
+
+function raceCandidateRoutes(map, state, costs, winner, onDone) {
+  const myGeneration = state.dispatch.generation;
+  const candidates = buildRaceCandidates(costs, winner.vehicleId);
+  let winnerLine = null;
+  const loserLines = [];
+
+  candidates.forEach((c, i) => {
+    setTimeout(() => {
+      if (state.dispatch.generation !== myGeneration) return;
+      const latlngs = c.path.map((nodeId) => {
+        const n = state.nodesById.get(nodeId);
+        return [n.lat, n.lon];
+      });
+      const style = c.isWinner
+        ? { color: "#ffffff", weight: 4, opacity: 0.95, interactive: false }
+        : { color: "#b8860b", weight: 2, opacity: 0.6, interactive: false };
+      const line = L.polyline(latlngs, style).addTo(map);
+      if (c.isWinner) {
+        winnerLine = line;
+      } else {
+        loserLines.push(line);
+      }
+
+      if (i === candidates.length - 1) {
+        setTimeout(() => {
+          if (state.dispatch.generation !== myGeneration) return;
+          if (winnerLine) state.dispatch.layers.push(winnerLine);
+          for (const line of loserLines) {
+            map.removeLayer(line);
+            state.dispatch.hiddenLayers.push(line);
+          }
+          onDone();
+        }, RACE_PAUSE_MS);
+      }
+    }, i * RACE_STAGGER_MS);
+  });
+}
+
 const MAX_SPEED_KMH = 50;
 
 function finishDispatch(map, state) {
@@ -297,6 +338,12 @@ function dispatchEmergency(map, state, emergencyNode) {
   state.dispatch.generation++;
   for (const layer of state.dispatch.layers) map.removeLayer(layer);
   state.dispatch.layers = [];
+  for (const layer of state.dispatch.hiddenLayers) map.removeLayer(layer);
+  state.dispatch.hiddenLayers = [];
+  state.dispatch.hiddenRoutesVisible = false;
+  const showRoutesBtn = document.getElementById("showAllRoutes");
+  showRoutesBtn.style.display = "none";
+  showRoutesBtn.textContent = "Ver todas las rutas";
   if (state.dispatch.emergencyMarker) map.removeLayer(state.dispatch.emergencyMarker);
   const en = state.nodesById.get(emergencyNode);
   state.dispatch.emergencyMarker = L.circleMarker([en.lat, en.lon], {
@@ -319,7 +366,7 @@ function dispatchEmergency(map, state, emergencyNode) {
   renderVehicleList(state, costs, winner.vehicleId);
   document.getElementById("summary").textContent = "Etapa 1: buscando vehículo más cercano...";
 
-  animatePath(map, state, state.dispatch, winner.result, "#ffffff", "#b8860b", () => {
+  raceCandidateRoutes(map, state, costs, winner, () => {
     document.getElementById("summary").textContent =
       `Vehículo #${winner.vehicleId} en camino a la emergencia (${winner.cost.toFixed(1)} min). Buscando hospital...`;
     const toHospital = nearestFacility(state.adj, state.nodesById, emergencyNode, state.hospitals, MAX_SPEED_KMH);
@@ -328,6 +375,7 @@ function dispatchEmergency(map, state, emergencyNode) {
         document.getElementById("summary").innerHTML =
           `Vehículo #${winner.vehicleId} → emergencia: ${winner.cost.toFixed(1)} min<br>` +
           `Ningún hospital alcanzable desde la emergencia.`;
+        document.getElementById("showAllRoutes").style.display = "block";
         finishDispatch(map, state);
         return;
       }
@@ -336,6 +384,7 @@ function dispatchEmergency(map, state, emergencyNode) {
         `Vehículo #${winner.vehicleId} → emergencia: ${winner.cost.toFixed(1)} min<br>` +
         `Emergencia → ${toHospital.facilityId}: ${toHospital.cost.toFixed(1)} min<br>` +
         `<b>Tiempo total: ${total.toFixed(1)} min</b>`;
+      document.getElementById("showAllRoutes").style.display = "block";
       finishDispatch(map, state);
     });
   });
@@ -365,7 +414,10 @@ function initApp() {
 
   const state = {
     data, nodesById, vehicles, adj, hospitals, speed: 50,
-    dispatch: { layers: [], generation: 0, nodesById, emergencyMarker: null, animating: false, pendingNode: null },
+    dispatch: {
+      layers: [], generation: 0, nodesById, emergencyMarker: null, animating: false, pendingNode: null,
+      hiddenLayers: [], hiddenRoutesVisible: false,
+    },
     route: { layers: [], generation: 0, nodesById, a: null, b: null, animating: false, pending: false },
   };
 
@@ -379,6 +431,18 @@ function initApp() {
   renderQuickList("criticalList", criticalPoints, (poi) => selectRoutePoint(map, state, poi, "b"));
   document.getElementById("route-reset").addEventListener("click", () => clearRouteSelection(map, state));
   updateRouteCoach(state);
+
+  document.getElementById("showAllRoutes").addEventListener("click", () => {
+    const btn = document.getElementById("showAllRoutes");
+    state.dispatch.hiddenRoutesVisible = !state.dispatch.hiddenRoutesVisible;
+    if (state.dispatch.hiddenRoutesVisible) {
+      for (const layer of state.dispatch.hiddenLayers) layer.addTo(map);
+      btn.textContent = "Ocultar rutas";
+    } else {
+      for (const layer of state.dispatch.hiddenLayers) map.removeLayer(layer);
+      btn.textContent = "Ver todas las rutas";
+    }
+  });
 
   document.getElementById("speedSlider").addEventListener("input", (e) => {
     state.speed = Number(e.target.value);
